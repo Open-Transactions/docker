@@ -1,0 +1,95 @@
+#!/bin/bash
+
+ARCH="${1}"
+BINDINGS="${2}"
+ANDROID_PLATFORM="android-25"
+SRC="/home/src"
+WORK="/tmp/build"
+OUT="/home/output"
+
+if [ ! -d "${SRC}" ]; then
+    echo "Source tree missing. Mount opentxs source directory at ${SRC}"
+    exit 1
+fi
+
+if [ ! -d "${OUT}" ]; then
+    echo "Output directory missing. Mount output directory at ${OUT}"
+    exit 1
+fi
+
+if [ "${ARCH}" == "" ]; then
+    echo "Target architecture not set. Allowed values: arm64 arm x64 x86"
+    exit 1
+elif [ "${ARCH}" == "arm64" ]; then
+    export ANDROID_ABI="arm64-v8a"
+    export CMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-aarch64-static"
+    export CUSTOM_LDFLAGS=""
+elif [ "${ARCH}" == "arm" ]; then
+    export ANDROID_ABI="armeabi-v7a"
+    export CMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-arm-static"
+    export CUSTOM_LDFLAGS=""
+elif [ "${ARCH}" == "x64" ]; then
+    export ANDROID_ABI="x86_64"
+    export CMAKE_CROSSCOMPILING_EMULATOR=""
+    export CUSTOM_LDFLAGS=""
+elif [ "${ARCH}" == "x86" ]; then
+    export ANDROID_ABI="x86"
+    export CMAKE_CROSSCOMPILING_EMULATOR=""
+    export CUSTOM_LDFLAGS="-Wl,--no-warn-shared-textrel"
+else
+    echo "Unknown architecture: ${ARCH}"
+    echo "Allowed values: arm64 arm x64 x86"
+    exit 1
+fi
+
+if [ "${BINDINGS}" == "" ]; then
+    export OT_JAVA="ON"
+    export OT_QT="ON"
+    echo "Enabling default bindings"
+elif [ "${BINDINGS}" == "qt" ]; then
+    export OT_JAVA="OFF"
+    export OT_QT="ON"
+    echo "Enabling qt bindings"
+elif [ "${BINDINGS}" == "java" ]; then
+    export OT_JAVA="ON"
+    export OT_QT="OFF"
+    echo "Enabling java bindings"
+elif [ "${BINDINGS}" == "both" ]; then
+    export OT_JAVA="ON"
+    export OT_QT="ON"
+    echo "Enabling all bindings"
+else
+    echo "Unknown bindings: ${BINDINGS}"
+    echo "Allowed values: qt java both"
+    exit 1
+fi
+
+set -e
+
+mkdir -p "${WORK}"
+cd "${WORK}"
+cmake \
+    -GNinja \
+    -DANDROID_ABI="${ANDROID_ABI}" \
+    -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+    -DANDROID_STL="c++_shared" \
+    -DCMAKE_TOOLCHAIN_FILE=/opt/ndk/build/cmake/android.toolchain.cmake \
+    -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH}" \
+    -DCMAKE_CROSSCOMPILING_EMULATOR="${CMAKE_CROSSCOMPILING_EMULATOR}" \
+    -DBUILD_SHARED_LIBS=ON \
+    -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
+    -DOPENTXS_BUILD_TESTS=ON \
+    -DOT_WITH_QT="${OT_QT}" \
+    -DOT_WITH_JAVA="${OT_JAVA}" \
+    -DOT_OPENSSL_FLAVOR_LIBRESSL=ON \
+    -DCMAKE_INSTALL_PREFIX="${OUT}" \
+    -DJAVA_AWT_LIBRARY=/usr/lib/jvm/jre-openjdk/lib/amd64/libjawt.so \
+    -DJAVA_JVM_LIBRARY=/usr/lib/jvm/jre-openjdk/lib/amd64/server/libjvm.so \
+    -DJAVA_INCLUDE_PATH="${JAVA_HOME}/include" \
+    -DJAVA_INCLUDE_PATH2="${JAVA_HOME}/include/linux" \
+    -DJAVA_AWT_INCLUDE_PATH="${JAVA_HOME}/include" \
+    -DCMAKE_SHARED_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
+    "${SRC}"
+cmake --build .
+rm -rf "${OUT}/"*
+cmake --install .
