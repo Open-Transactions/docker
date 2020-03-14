@@ -93,3 +93,5 @@ cmake \
 cmake --build .
 rm -rf "${OUT}/"*
 cmake --install .
+cp -a "/usr/android/${ARCH}/include/opentxs-proto" "${OUT}/include/"
+cp -a "/usr/android/${ARCH}/include/google" "${OUT}/include/"

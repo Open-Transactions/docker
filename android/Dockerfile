@@ -33,6 +33,7 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && cd /usr/src/boost \
     && ./build-android.sh --download /opt/ndk
 ARG ANDROID_LEVEL=25
+COPY ./boost.patch /usr/src/boost/patches/boost-1_70_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/--layout=versioned/--layout=system/" build-android.sh \
     && sed -i "s/link=static/link=shared/" build-android.sh \
@@ -66,8 +67,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-asm \
         --disable-minimal \
         --disable-soname-versions \
-        --disable-shared \
-        --enable-static \
+        --enable-shared \
+        --disable-static \
     && make -j$JOBS install && rm -rf /tmp/build \
     && mkdir -p /tmp/build && cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" \
@@ -84,8 +85,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-asm \
         --disable-minimal \
         --disable-soname-versions \
-        --disable-shared \
-        --enable-static \
+        --enable-shared \
+        --disable-static \
     && make -j$JOBS install && rm -rf /tmp/build \
     && mkdir -p /tmp/build && cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ar" \
@@ -102,8 +103,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-asm \
         --disable-minimal \
         --disable-soname-versions \
-        --disable-shared \
-        --enable-static \
+        --enable-shared \
+        --disable-static \
     && make -j$JOBS install && rm -rf /tmp/build \
     && mkdir -p /tmp/build && cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ar" \
@@ -120,8 +121,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-asm \
         --disable-minimal \
         --disable-soname-versions \
-        --disable-shared \
-        --enable-static \
+        --enable-shared \
+        --disable-static \
     && make -j$JOBS install && rm -rf /tmp/build \
     && rm -rf /usr/src/sodium
 
@@ -145,8 +146,8 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
         --prefix=/usr/android/arm64 \
         --host=aarch64-linux-android \
         --with-sysroot="/opt/ndk/sysroot/usr" \
-        --enable-static \
-        --disable-shared \
+        --disable-static \
+        --enable-shared \
         --disable-openssl-tests \
         --enable-experimental \
         --disable-exhaustive-tests \
@@ -169,8 +170,8 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
         --prefix=/usr/android/arm \
         --host=armv7a-linux-androideabi \
         --with-sysroot="/opt/ndk/sysroot/usr" \
-        --enable-static \
-        --disable-shared \
+        --disable-static \
+        --enable-shared \
         --disable-openssl-tests \
         --enable-experimental \
         --disable-exhaustive-tests \
@@ -193,8 +194,8 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
         --prefix=/usr/android/x64 \
         --host=x86_64-linux-android \
         --with-sysroot="/opt/ndk/sysroot/usr" \
-        --enable-static \
-        --disable-shared \
+        --disable-static \
+        --enable-shared \
         --disable-openssl-tests \
         --enable-experimental \
         --disable-exhaustive-tests \
@@ -217,8 +218,8 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
         --prefix=/usr/android/x86 \
         --host=i686-linux-android \
         --with-sysroot="/opt/ndk/sysroot/usr" \
-        --enable-static \
-        --disable-shared \
+        --disable-static \
+        --enable-shared \
         --disable-openssl-tests \
         --enable-experimental \
         --disable-exhaustive-tests \
@@ -241,7 +242,7 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_CLANG}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/arm64~" /tmp/build/Makefile \
-    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb.a/" /tmp/build/Makefile \
+    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
     && make -j$JOBS install \
     && rm -rf /tmp/build \
@@ -249,7 +250,7 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_CLANG}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/arm~" /tmp/build/Makefile \
-    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb.a/" /tmp/build/Makefile \
+    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
     && make -j$JOBS install \
     && rm -rf /tmp/build \
@@ -257,7 +258,7 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_CLANG}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/x64~" /tmp/build/Makefile \
-    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb.a/" /tmp/build/Makefile \
+    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
     && make -j$JOBS install \
     && rm -rf /tmp/build \
@@ -265,7 +266,7 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_CLANG}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/x86~" /tmp/build/Makefile \
-    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb.a/" /tmp/build/Makefile \
+    && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
     && make -j$JOBS install \
     && rm -rf /tmp/build \
@@ -301,12 +302,12 @@ RUN mkdir -p /tmp/build \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -Dprotobuf_BUILD_TESTS=OFF \
         -Dprotobuf_BUILD_CONFORMANCE=OFF \
         -Dprotobuf_BUILD_PROTOC_BINARIES=OFF \
         -Dprotobuf_WITH_ZLIB=OFF \
-        -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+        -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/protobuf/cmake \
     && ninja install \
@@ -321,12 +322,12 @@ RUN mkdir -p /tmp/build \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -Dprotobuf_BUILD_TESTS=OFF \
         -Dprotobuf_BUILD_CONFORMANCE=OFF \
         -Dprotobuf_BUILD_PROTOC_BINARIES=OFF \
         -Dprotobuf_WITH_ZLIB=OFF \
-        -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+        -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/protobuf/cmake \
     && ninja install \
@@ -341,12 +342,12 @@ RUN mkdir -p /tmp/build \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -Dprotobuf_BUILD_TESTS=OFF \
         -Dprotobuf_BUILD_CONFORMANCE=OFF \
         -Dprotobuf_BUILD_PROTOC_BINARIES=OFF \
         -Dprotobuf_WITH_ZLIB=OFF \
-        -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+        -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/protobuf/cmake \
     && ninja install \
@@ -361,12 +362,12 @@ RUN mkdir -p /tmp/build \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -Dprotobuf_BUILD_TESTS=OFF \
         -Dprotobuf_BUILD_CONFORMANCE=OFF \
         -Dprotobuf_BUILD_PROTOC_BINARIES=OFF \
         -Dprotobuf_WITH_ZLIB=OFF \
-        -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+        -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/protobuf/cmake \
     && ninja install \
@@ -390,7 +391,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DLIBRESSL_APPS=OFF \
         -DLIBRESSL_TESTS=OFF \
         -DENABLE_ASM=OFF \
@@ -407,7 +408,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DLIBRESSL_APPS=OFF \
         -DLIBRESSL_TESTS=OFF \
         -DENABLE_ASM=OFF \
@@ -424,7 +425,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DLIBRESSL_APPS=OFF \
         -DLIBRESSL_TESTS=OFF \
         -DENABLE_ASM=OFF \
@@ -441,7 +442,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
         -DANDROID_STL="c++_shared" \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DLIBRESSL_APPS=OFF \
         -DLIBRESSL_TESTS=OFF \
         -DENABLE_ASM=OFF \
@@ -468,7 +469,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DENABLE_ASAN=OFF \
         -DENABLE_INTRINSICS=OFF \
         -DWITH_OPENPGM=OFF \
@@ -500,7 +501,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DENABLE_ASAN=OFF \
         -DENABLE_INTRINSICS=OFF \
         -DWITH_OPENPGM=OFF \
@@ -549,7 +550,7 @@ RUN mkdir -p /tmp/build \
         -DWITH_PERF_TOOL=OFF \
         -DBUILD_TESTS=OFF \
         -DENABLE_CPACK=OFF \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/zeromq \
     && ninja install \
     && rm -rf /tmp/build \
@@ -581,7 +582,7 @@ RUN mkdir -p /tmp/build \
         -DWITH_PERF_TOOL=OFF \
         -DBUILD_TESTS=OFF \
         -DENABLE_CPACK=OFF \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/zeromq \
     && ninja install \
     && rm -rf /tmp/build \
@@ -605,7 +606,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
     && ninja install \
     && ctest --jobs $JOBS \
@@ -621,7 +622,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
     && ninja install \
     && rm -rf /tmp/build \
@@ -636,7 +637,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
     && ninja install \
     && rm -rf /tmp/build \
@@ -651,7 +652,7 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
     && ninja install \
     && rm -rf /tmp/build \
@@ -679,9 +680,10 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
         -DCMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-aarch64-static" \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
         -DOPENTXS_PROTO_BUILD_TESTS=ON \
+        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/opentxs-proto \
     && ninja install \
     && rm -rf /tmp/build \
@@ -697,9 +699,10 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
         -DCMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-arm-static" \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
         -DOPENTXS_PROTO_BUILD_TESTS=ON \
+        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/opentxs-proto \
     && ninja install \
     && rm -rf /tmp/build \
@@ -714,9 +717,10 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
         -DOPENTXS_PROTO_BUILD_TESTS=ON \
+        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/opentxs-proto \
     && ninja install \
     && rm -rf /tmp/build \
@@ -731,9 +735,10 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
         -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=OFF \
+        -DBUILD_SHARED_LIBS=ON \
         -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
         -DOPENTXS_PROTO_BUILD_TESTS=ON \
+        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
         /usr/src/opentxs-proto \
     && ninja install \
     && rm -rf /tmp/build \
@@ -807,6 +812,7 @@ FROM run
 ARG NDK=21.0.6113669
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
+COPY --from=qt /usr/android /usr/android
 COPY --from=boost /usr/android /usr/android
 COPY --from=sodium /usr/android /usr/android
 COPY --from=secp256k1 /usr/android /usr/android
@@ -817,7 +823,6 @@ COPY --from=libressl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=otproto /usr/android /usr/android
-COPY --from=qt /usr/android /usr/android
 COPY ./build /usr/bin
 ENV JAVA_HOME /usr/lib/jvm/java
 RUN cp /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/jni.h "${JAVA_HOME}/include"
