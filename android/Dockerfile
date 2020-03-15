@@ -685,8 +685,8 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/googletest
 
 FROM tools AS qt_download
-ARG QT_BRANCH=5.12
-ARG QT_VERSION=5.12.7
+ARG QT_BRANCH=5.15
+ARG QT_VERSION=5.15.0
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
@@ -698,54 +698,20 @@ ENV JAVA_HOME /usr/lib/jvm/java
 COPY --from=qt_download /usr/src/qt /usr/src/qt
 ARG JOBS=2
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
-    --prefix=/usr/android/arm64 \
+    --prefix=/usr/qt-for-android \
     --disable-rpath \
+    -opensource \
+    -confirm-license \
+    -linker lld \
     -xplatform android-clang \
+    -android-ndk-platform android-24 \
     -android-ndk /opt/ndk \
     -android-sdk /opt/android-sdk-linux \
-    -android-arch arm64-v8a \
+    -android-abis arm64-v8a,armeabi-v7a,x86_64,x86 \
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    && make -j$JOBS \
-    && make install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
-    --prefix=/usr/android/arm \
-    --disable-rpath \
-    -xplatform android-clang \
-    -android-ndk /opt/ndk \
-    -android-sdk /opt/android-sdk-linux \
-    -android-arch armeabi-v7a \
-    -nomake tests \
-    -nomake examples \
-    -no-warnings-are-errors \
-    && make -j$JOBS \
-    && make install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
-    --prefix=/usr/android/x64 \
-    --disable-rpath \
-    -xplatform android-clang \
-    -android-ndk /opt/ndk \
-    -android-sdk /opt/android-sdk-linux \
-    -android-arch x86_64 \
-    -nomake tests \
-    -nomake examples \
-    -no-warnings-are-errors \
-    && make -j$JOBS \
-    && make install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
-    --prefix=/usr/android/x86 \
-    --disable-rpath \
-    -xplatform android-clang \
-    -android-ndk /opt/ndk \
-    -android-sdk /opt/android-sdk-linux \
-    -android-arch x86 \
-    -nomake tests \
-    -nomake examples \
-    -no-warnings-are-errors \
+    -no-zlib \
     && make -j$JOBS \
     && make install \
     && rm -rf /tmp/build \
@@ -755,7 +721,7 @@ FROM run
 ARG NDK=21.1.6352462
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
-COPY --from=qt /usr/android /usr/android
+COPY --from=qt /usr/qt-for-android /usr/qt-for-android
 COPY --from=boost /usr/android /usr/android
 COPY --from=sodium /usr/android /usr/android
 COPY --from=secp256k1 /usr/android /usr/android
