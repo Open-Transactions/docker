@@ -659,7 +659,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/googletest
 
 FROM build_base as otproto
-ARG OTPROTO=0e0fbe60c632ccc0a13038a41bdf986a5e8770f5
+ARG OTPROTO=3150c3dca05a241ac96a852675d73405ec27e0b1
 RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/Open-Transactions/opentxs-proto.git \
     && cd opentxs-proto && git checkout "${OTPROTO}" && git submodule update --init --recursive
 COPY --from=protobuf /usr/android /usr/android
