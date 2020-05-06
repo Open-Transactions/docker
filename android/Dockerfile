@@ -658,92 +658,6 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/googletest
 
-FROM build_base as otproto
-ARG OTPROTO=3150c3dca05a241ac96a852675d73405ec27e0b1
-RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/Open-Transactions/opentxs-proto.git \
-    && cd opentxs-proto && git checkout "${OTPROTO}" && git submodule update --init --recursive
-COPY --from=protobuf /usr/android /usr/android
-COPY --from=protobuf /usr/local/protobuf /usr
-COPY --from=gtest /usr/android /usr/android
-ARG ANDROID_LEVEL=25
-ARG CMAKE_BUILD_TYPE=Release
-ARG JOBS=2
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
-    && cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=arm64-v8a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
-        -DCMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-aarch64-static" \
-        -DBUILD_SHARED_LIBS=ON \
-        -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-        -DOPENTXS_PROTO_BUILD_TESTS=ON \
-        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/opentxs-proto \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
-    && cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=armeabi-v7a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
-        -DCMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-arm-static" \
-        -DBUILD_SHARED_LIBS=ON \
-        -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-        -DOPENTXS_PROTO_BUILD_TESTS=ON \
-        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/opentxs-proto \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
-    && cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86_64 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-        -DOPENTXS_PROTO_BUILD_TESTS=ON \
-        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/opentxs-proto \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
-    && cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-        -DOPENTXS_PROTO_BUILD_TESTS=ON \
-        -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/opentxs-proto \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/opentxs-proto
-
 FROM build_base as qt
 ENV JAVA_HOME /usr/lib/jvm/java
 ARG QT_BRANCH=5.12
@@ -822,7 +736,6 @@ COPY --from=protobuf /usr/local/protobuf /usr
 COPY --from=libressl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
-COPY --from=otproto /usr/android /usr/android
 COPY ./build /usr/bin
 ENV JAVA_HOME /usr/lib/jvm/java
 RUN cp /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/jni.h "${JAVA_HOME}/include"
