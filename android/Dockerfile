@@ -15,16 +15,18 @@ ARG ANDROID_LEVEL=25
 RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}"
 ARG ANDROID_BUILD_TOOLS=25.0.3
 RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}"
-ARG NDK=21.0.6113669
-RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
+ARG NDK=21.1.6352462
+RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
+    && yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
+RUN find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS build_base
-ARG NDK=21.0.6113669
+ARG NDK=21.1.6352462
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
 FROM tools AS boost_download
-ARG BOOST=dfd133fe68e07c0e1d56195a1df18b6766014fe0
+ARG BOOST=85903c29c962c788a5a431ecbdb31a7f58552bee
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
@@ -750,7 +752,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     && rm -rf /usr/src/qt
 
 FROM run
-ARG NDK=21.0.6113669
+ARG NDK=21.1.6352462
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 COPY --from=qt /usr/android /usr/android
