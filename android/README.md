@@ -16,7 +16,6 @@ This image creates an Android NDK development environment and compiles all opent
 * ZeroMQ (4.3.2)
 * Googletest (1.10.0)
 * Qt (5.12.7)
-* opentxs-proto (latest)
 
 ## Usage
 
@@ -46,7 +45,6 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 * ZMQ
 * QT_BRANCH
 * QT_VERSION
-* OTPROTO
 
 ### Compiling opentxs
 

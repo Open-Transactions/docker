@@ -23,7 +23,7 @@ ARG NDK=21.0.6113669
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
-FROM build_base AS boost
+FROM tools AS boost_download
 ARG BOOST=dfd133fe68e07c0e1d56195a1df18b6766014fe0
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
@@ -31,7 +31,10 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && ./build-android.sh --download /opt/ndk
+    && wget http://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2
+
+FROM build_base AS boost
+COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL=25
 COPY ./boost.patch /usr/src/boost/patches/boost-1_70_0/suffix.patch
 RUN cd /usr/src/boost \
@@ -45,10 +48,13 @@ RUN cd /usr/src/boost \
     && mv /usr/src/boost/build/out/x86 /usr/android/x86 \
     && rm -rf /usr/src/boost
 
-FROM build_base AS sodium
+FROM tools AS sodium_download
 ARG SODIUM=940ef42797baa0278df6b7fd9e67c7590f87744b
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/jedisct1/libsodium/archive/${SODIUM}.zip" \
     && unzip "${SODIUM}.zip" && rm "${SODIUM}.zip" && mv "libsodium-${SODIUM}" sodium
+
+FROM build_base AS sodium
+COPY --from=sodium_download /usr/src/sodium /usr/src/sodium
 ARG ANDROID_LEVEL=25
 ARG ANDROID_CLANG=24
 ARG JOBS=2
@@ -126,10 +132,13 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
     && make -j$JOBS install && rm -rf /tmp/build \
     && rm -rf /usr/src/sodium
 
-FROM build_base AS secp256k1
+FROM tools AS secp256k1_download
 ARG SECP256K1=452d8e4d2a2f9f1b5be6b02e18f1ba102e5ca0b4
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/bitcoin/secp256k1/archive/${SECP256K1}.zip" \
     && unzip "${SECP256K1}.zip" && rm "${SECP256K1}.zip" && mv "secp256k1-${SECP256K1}" secp256k1
+
+FROM build_base AS secp256k1
+COPY --from=secp256k1_download /usr/src/secp256k1 /usr/src/secp256k1
 ARG ANDROID_LEVEL=25
 ARG ANDROID_CLANG=24
 ARG JOBS=2
@@ -232,10 +241,13 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
     && make -j$JOBS install && rm -rf /tmp/build \
     && rm -rf /usr/src/secp256k1
 
-FROM build_base AS lmdb
+FROM tools AS lmdb_download
 ARG LMDB=5c012bbe033f9bbb273078b07dded59f080d348d
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/LMDB/lmdb/archive/${LMDB}.zip" \
     && unzip "${LMDB}.zip" && rm "${LMDB}.zip" && mv "lmdb-${LMDB}" lmdb
+
+FROM build_base AS lmdb
+COPY --from=lmdb_download /usr/src/lmdb /usr/src/lmdb
 ARG ANDROID_CLANG=24
 ARG JOBS=2
 RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
@@ -272,10 +284,13 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/lmdb
 
-FROM build_base AS protobuf
+FROM tools AS protobuf_download
 ARG PROTOBUF=d0bfd5221182da1a7cc280f3337b5e41a89539cf
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/protocolbuffers/protobuf/archive/${PROTOBUF}.zip" \
     && unzip "${PROTOBUF}.zip" && rm "${PROTOBUF}.zip" && mv "protobuf-${PROTOBUF}" protobuf
+
+FROM build_base AS protobuf
+COPY --from=protobuf_download /usr/src/protobuf /usr/src/protobuf
 ARG ANDROID_LEVEL=25
 ARG CMAKE_BUILD_TYPE=Release
 RUN mkdir -p /tmp/build \
@@ -374,10 +389,13 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/protobuf
 
-FROM build_base AS libressl
+FROM tools AS libressl_download
 ARG LIBRESSL=9371ddb5525f69f43a328419d09eb49a439d7c0f
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/libressl-portable/portable/archive/${LIBRESSL}.zip" \
     && unzip "${LIBRESSL}.zip" && rm "${LIBRESSL}.zip" && mv "portable-${LIBRESSL}" libressl
+
+FROM build_base AS libressl
+COPY --from=libressl_download /usr/src/libressl /usr/src/libressl
 ARG ANDROID_LEVEL=25
 ARG CMAKE_BUILD_TYPE=Release
 RUN cd /usr/src/libressl && ./autogen.sh \
@@ -451,10 +469,13 @@ RUN cd /usr/src/libressl && ./autogen.sh \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/libressl
 
-FROM build_base AS zeromq
+FROM tools AS zeromq_download
 ARG ZMQ=a84ffa12b2eb3569ced199660bac5ad128bff1f0
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/zeromq/libzmq/archive/${ZMQ}.zip" \
     && unzip "${ZMQ}.zip" && rm "${ZMQ}.zip" && mv "libzmq-${ZMQ}" zeromq
+
+FROM build_base AS zeromq
+COPY --from=zeromq_download /usr/src/zeromq /usr/src/zeromq
 COPY --from=sodium /usr/android /usr/android
 ARG ANDROID_LEVEL=25
 ARG CMAKE_BUILD_TYPE=Release
@@ -588,10 +609,13 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/zeromq
 
-FROM build_base as gtest
+FROM tools AS gtest_download
 ARG GTEST=703bd9caab50b139428cea1aaff9974ebee5742e
 RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/google/googletest.git \
     && cd googletest && git checkout "${GTEST}" && git submodule update --init --recursive
+
+FROM build_base as gtest
+COPY --from=gtest_download /usr/src/googletest /usr/src/googletest
 ARG ANDROID_LEVEL=25
 ARG CMAKE_BUILD_TYPE=Release
 ARG JOBS=2
@@ -658,8 +682,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/googletest
 
-FROM build_base as qt
-ENV JAVA_HOME /usr/lib/jvm/java
+FROM tools AS qt_download
 ARG QT_BRANCH=5.12
 ARG QT_VERSION=5.12.7
 RUN mkdir -p /usr/src && cd /usr/src \
@@ -667,6 +690,10 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt
+
+FROM build_base as qt
+ENV JAVA_HOME /usr/lib/jvm/java
+COPY --from=qt_download /usr/src/qt /usr/src/qt
 ARG JOBS=2
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/android/arm64 \
