@@ -11,7 +11,7 @@ This image creates an Android NDK development environment and compiles all opent
 * Libsodium (1.0.18)
 * Secp256k1 (452d8e4)
 * LMDB (5c012bb)
-* Protocol Buffers (3.11.4)
+* Protocol Buffers (3.12.3)
 * LibreSSL (3.0.2)
 * ZeroMQ (4.3.2)
 * Googletest (1.10.0)

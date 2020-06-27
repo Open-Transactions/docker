@@ -287,7 +287,7 @@ RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && rm -rf /usr/src/lmdb
 
 FROM tools AS protobuf_download
-ARG PROTOBUF=d0bfd5221182da1a7cc280f3337b5e41a89539cf
+ARG PROTOBUF=31ebe2ac71400344a5db91ffc13c4ddfb7589f92
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/protocolbuffers/protobuf/archive/${PROTOBUF}.zip" \
     && unzip "${PROTOBUF}.zip" && rm "${PROTOBUF}.zip" && mv "protobuf-${PROTOBUF}" protobuf
 
