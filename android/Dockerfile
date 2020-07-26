@@ -26,23 +26,23 @@ COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
 FROM tools AS boost_download
-ARG BOOST=85903c29c962c788a5a431ecbdb31a7f58552bee
+ARG BOOST=92a703aacf40bf422e9ba7bc71f70b61a1afa38d
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && wget http://dl.bintray.com/boostorg/release/1.70.0/source/boost_1_70_0.tar.bz2
+    && wget http://dl.bintray.com/boostorg/release/1.73.0/source/boost_1_73_0.tar.bz2
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL=25
-COPY ./boost.patch /usr/src/boost/patches/boost-1_70_0/suffix.patch
+COPY ./boost.patch /usr/src/boost/patches/boost-1_73_0/suffix.patch
 RUN cd /usr/src/boost \
-    && sed -i "s/--layout=versioned/--layout=system/" build-android.sh \
+    && sed -i 's/"21.1")/"21.1"|"21.2"|"21.3")/' build-android.sh \
     && sed -i "s/link=static/link=shared/" build-android.sh \
-    && ./build-android.sh --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" /opt/ndk \
+    && ./build-android.sh --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
     && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
     && mv /usr/src/boost/build/out/armeabi-v7a /usr/android/arm \
