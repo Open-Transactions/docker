@@ -6,7 +6,7 @@ This image creates an Android NDK development environment and compiles all opent
 
 * Android SDK
   * Platform (android-25)
-  * Android NDK (21.1.6352462)
+  * Android NDK (21.1.6528147)
 * Boost (1.70)
 * Libsodium (1.0.18)
 * Secp256k1 (452d8e4)

@@ -1,5 +1,5 @@
 FROM fedora:31 AS run
-RUN dnf install -y cmake java-devel git ninja-build qemu-user-static swig
+RUN dnf install -y cmake java-devel git ninja-build qemu-user-static swig && rm -rf /var/cache/dnf
 
 FROM run AS tools
 RUN dnf install -y automake bzip2 diffutils findutils gcc gcc-c++ libtool make patch python unzip wget which xz
@@ -15,13 +15,13 @@ ARG ANDROID_LEVEL=25
 RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}"
 ARG ANDROID_BUILD_TOOLS=25.0.3
 RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}"
-ARG NDK=21.1.6352462
+ARG NDK=21.3.6528147
 RUN yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
     && yes | /opt/android/tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
 RUN find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS build_base
-ARG NDK=21.1.6352462
+ARG NDK=21.3.6528147
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
@@ -718,7 +718,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     && rm -rf /usr/src/qt
 
 FROM run
-ARG NDK=21.1.6352462
+ARG NDK=21.3.6528147
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 COPY --from=qt /usr/qt-for-android /usr/qt-for-android
