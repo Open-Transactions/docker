@@ -244,7 +244,7 @@ RUN cd /usr/src/secp256k1 && ./autogen.sh \
     && rm -rf /usr/src/secp256k1
 
 FROM tools AS lmdb_download
-ARG LMDB=5c012bbe033f9bbb273078b07dded59f080d348d
+ARG LMDB=8d0cbbc936091eb85972501a9b31a8f86d4c51a7
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/LMDB/lmdb/archive/${LMDB}.zip" \
     && unzip "${LMDB}.zip" && rm "${LMDB}.zip" && mv "lmdb-${LMDB}" lmdb
 
