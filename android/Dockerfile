@@ -135,7 +135,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
     && rm -rf /usr/src/sodium
 
 FROM tools AS secp256k1_download
-ARG SECP256K1=452d8e4d2a2f9f1b5be6b02e18f1ba102e5ca0b4
+ARG SECP256K1=3e5cfc5c73f856010fe646657703faf8d63e7120
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/bitcoin/secp256k1/archive/${SECP256K1}.zip" \
     && unzip "${SECP256K1}.zip" && rm "${SECP256K1}.zip" && mv "secp256k1-${SECP256K1}" secp256k1
 

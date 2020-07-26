@@ -9,7 +9,7 @@ This image creates an Android NDK development environment and compiles all opent
   * Android NDK (21.1.6528147)
 * Boost (1.73)
 * Libsodium (1.0.18)
-* Secp256k1 (452d8e4)
+* Secp256k1 (3e5cfc5)
 * LMDB (8d0cbbc)
 * Protocol Buffers (3.12.3)
 * LibreSSL (3.1.3)
