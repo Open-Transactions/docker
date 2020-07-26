@@ -392,7 +392,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/protobuf
 
 FROM tools AS libressl_download
-ARG LIBRESSL=9371ddb5525f69f43a328419d09eb49a439d7c0f
+ARG LIBRESSL=aa6440a9b086faa9ee555046c2c006534e01eaf7
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/libressl-portable/portable/archive/${LIBRESSL}.zip" \
     && unzip "${LIBRESSL}.zip" && rm "${LIBRESSL}.zip" && mv "portable-${LIBRESSL}" libressl
 
