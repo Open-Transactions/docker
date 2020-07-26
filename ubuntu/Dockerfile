@@ -1,7 +1,7 @@
-FROM fedora:32 AS base
+FROM ubuntu:20.04 AS base
 
 FROM base AS git
-RUN dnf install -y git
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -qq install git
 
 # Compile the version we use for the android build since the distro package does not include ecdh support
 FROM git AS libsecp256k1-download
@@ -15,21 +15,22 @@ ARG OPENTXS_COMMIT="e58cbd7e3b75cae7e6bdedeec5cfaa9b99fa110b"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
-RUN dnf install -y \
-    gcc \
-    gcc-c++ \
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qq install \
+    gcc-10 \
+    g++-10 \
     cmake \
     ninja-build \
     protobuf-compiler \
-    boost-devel \
-    lmdb-devel \
-    protobuf-lite-devel \
-    libsodium-devel \
-    openssl-devel \
-    zeromq-devel
+    libboost-all-dev \
+    liblmdb-dev \
+    libprotobuf-dev \
+    libsodium-dev \
+    libssl-dev \
+    libzmq3-dev \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 --slave /usr/bin/g++ g++ /usr/bin/g++-10 --slave /usr/bin/gcov gcov /usr/bin/gcov-10
 
 FROM build AS libsecp256k1
-RUN dnf install -y autoconf automake file libtool make
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qq install autoconf automake file libtool make
 COPY --from=libsecp256k1-download /usr/src/secp256k1 /usr/src/secp256k1
 RUN cd /usr/src/secp256k1 && ./autogen.sh
 RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure \
@@ -58,18 +59,21 @@ RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
     && rm -rf /tmp/opentxs*
 
 FROM base AS run
-RUN dnf install -y \
-    boost \
-    lmdb \
-    protobuf-lite \
-    libsodium \
-    openssl-libs \
-    zeromq \
-    && rm -rf /var/cache/dnf
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -qq install \
+    libboost-filesystem1.71.0 \
+    libboost-iostreams1.71.0 \
+    libboost-stacktrace1.71.0 \
+    libboost-system1.71.0 \
+    libboost-thread1.71.0 \
+    liblmdb0 \
+    libprotobuf-lite17 \
+    libsodium23 \
+    libssl1.1 \
+    libzmq5 \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM run AS opentxs
 COPY --from=compile /usr/local/lib /usr/lib
-COPY --from=compile /usr/local/lib64 /usr/lib64
 
 FROM opentxs AS opentxs-devel
 COPY --from=compile /usr/include /usr/include
