@@ -11,7 +11,7 @@ RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && 
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="e58cbd7e3b75cae7e6bdedeec5cfaa9b99fa110b"
+ARG OPENTXS_COMMIT="c49c27d9157015ff41d40fa0c0da2d310f1504d9"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -20,6 +20,7 @@ RUN dnf install -y \
     gcc-c++ \
     cmake \
     ninja-build \
+    gtest-devel \
     protobuf-compiler \
     boost-devel \
     lmdb-devel \
@@ -51,9 +52,11 @@ RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure
 FROM build AS compile
 COPY --from=libsecp256k1 /usr/local /usr/local
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
+ARG TEST_JOBS=2
 RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
-    && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON -DOT_CASH_USING_LUCRE=ON /usr/src/opentxs \
+    && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DOPENTXS_BUILD_TESTS=ON -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON -DOT_CASH_USING_LUCRE=ON /usr/src/opentxs \
     && cmake --build . \
+    && ctest -j "${TEST_JOBS}" --repeat until-pass:3 --schedule-random \
     && cmake --install . \
     && rm -rf /tmp/opentxs*
 
