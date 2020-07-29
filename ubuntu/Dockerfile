@@ -77,6 +77,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -qq install \
 
 FROM run AS opentxs
 COPY --from=compile /usr/local/lib /usr/lib
+RUN ldconfig
 
 FROM opentxs AS opentxs-devel
 COPY --from=compile /usr/include /usr/include

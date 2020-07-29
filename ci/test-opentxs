@@ -1,0 +1,26 @@
+#!/bin/bash
+
+JOBS="${1}"
+SRC="/home/src"
+WORK="/home/output"
+
+if [ ! -d "${SRC}" ]; then
+    echo "Source tree missing. Mount opentxs source directory at ${SRC}"
+    exit 1
+fi
+
+if [ ! -d "${WORK}" ]; then
+    echo "Work directory missing. Mount build directory at ${WORK}"
+    exit 1
+fi
+
+if [ "${JOBS}" == "" ]; then
+    echo "Parallel test jobs not set"
+    exit 1
+fi
+
+set -e
+
+cd "${WORK}"
+cmake --install .
+ctest -j "${JOBS}" --repeat until-pass:5 --schedule-random

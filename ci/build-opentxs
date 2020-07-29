@@ -1,0 +1,46 @@
+#!/bin/bash
+
+C_COMPILER="${1}"
+CXX_COMPILER="${2}"
+SRC="/home/src"
+WORK="/home/output"
+
+if [ ! -d "${SRC}" ]; then
+    echo "Source tree missing. Mount opentxs source directory at ${SRC}"
+    exit 1
+fi
+
+if [ ! -d "${WORK}" ]; then
+    echo "Work directory missing. Mount build directory at ${WORK}"
+    exit 1
+fi
+
+if [ "${C_COMPILER}" == "" ]; then
+    echo "C compiler not set"
+    exit 1
+fi
+
+if [ "${CXX_COMPILER}" == "" ]; then
+    echo "C++ compiler not set"
+    exit 1
+fi
+
+set -e
+
+rm -rf "${WORK}/"*
+cd "${WORK}"
+cmake \
+    -GNinja \
+    -DCMAKE_C_COMPILER="${C_COMPILER}" \
+    -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DOPENTXS_PEDANTIC_BUILD=ON \
+    -DBUILD_SHARED_LIBS=ON \
+    -DOPENTXS_BUILD_TESTS=ON \
+    -DOT_STORAGE_FS=ON \
+    -DOT_STORAGE_SQLITE=ON \
+    -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON \
+    -DOT_CASH_USING_LUCRE=ON \
+    -DOT_WITH_QT=OFF \
+    "${SRC}"
+cmake --build .

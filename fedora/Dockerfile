@@ -73,6 +73,7 @@ RUN dnf install -y \
 FROM run AS opentxs
 COPY --from=compile /usr/local/lib /usr/lib
 COPY --from=compile /usr/local/lib64 /usr/lib64
+RUN ldconfig
 
 FROM opentxs AS opentxs-devel
 COPY --from=compile /usr/include /usr/include
