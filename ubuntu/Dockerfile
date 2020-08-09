@@ -11,7 +11,7 @@ RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && 
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="c49c27d9157015ff41d40fa0c0da2d310f1504d9"
+ARG OPENTXS_COMMIT="6b15ec062f6fa5b041721529a0bf98a951cf2309"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -77,6 +77,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -qq install \
 
 FROM run AS opentxs
 COPY --from=compile /usr/local/lib /usr/lib
+RUN sed -i s~prefix=/usr/local~prefix=/usr~ /usr/lib/pkgconfig/libsecp256k1.pc
 RUN ldconfig
 
 FROM opentxs AS opentxs-devel
