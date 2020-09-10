@@ -16,7 +16,6 @@ RUN dnf install -y \
     protobuf-compiler \
     clang-analyzer \
     cppcheck \
-    boost-devel \
     lmdb-devel \
     protobuf-lite-devel \
     libsodium-devel \
@@ -34,6 +33,10 @@ RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && 
 FROM fedora-git AS lwyu-download
 ARG IWYU_COMMIT="aa7c6633218b5ea2a6dbb131448dfd133d600102"
 RUN mkdir -p /usr/src && git clone "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}" && git submodule update --init --recursive
+
+FROM fedora-git AS boost-download
+ARG BOOST_COMMIT="a7090e8ce184501cfc9e80afa6cafb5bfd3b371c"
+RUN mkdir -p /usr/src && git clone "https://github.com/boostorg/boost" /usr/src/boost && cd /usr/src/boost && git reset --hard "${BOOST_COMMIT}" && git submodule update --init --recursive
 
 FROM fedora-build AS fedora-libsecp256k1
 COPY --from=fedora-git /var/cache/dnf /var/cache/dnf
@@ -66,9 +69,19 @@ RUN mkdir -p /tmp/lwyu && cd /tmp/lwyu \
     && cmake --install . \
     && rm -rf /tmp/lwyu
 
+FROM fedora-build AS fedora-boost
+COPY --from=fedora-git /var/cache/dnf /var/cache/dnf
+RUN dnf install -y which
+COPY --from=boost-download /usr/src/boost /usr/src/boost
+RUN cd /usr/src/boost \
+    && ./bootstrap.sh --prefix=/usr/local --with-libraries=all \
+    && ./b2 \
+    && ./b2 install
+
 FROM fedora-build AS opentxs-fedora-ci
 COPY --from=fedora-libsecp256k1 /usr/local /usr/
 COPY --from=fedora-iwyu /usr/local /usr/
+COPY --from=fedora-boost /usr/local /usr/
 RUN ldconfig
 COPY ./build-opentxs /usr/bin
 COPY ./build-opentxs-clang /usr/bin
