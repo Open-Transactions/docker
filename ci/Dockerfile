@@ -30,7 +30,7 @@ ARG LIBSECP256K1_REPO="https://github.com/bitcoin/secp256k1"
 ARG LIBSECP256K1_COMMIT="3e5cfc5c73f856010fe646657703faf8d63e7120"
 RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && cd /usr/src/secp256k1 && git reset --hard "${LIBSECP256K1_COMMIT}" && git submodule update --init --recursive
 
-FROM fedora-git AS lwyu-download
+FROM fedora-git AS iwyu-download
 ARG IWYU_COMMIT="aa7c6633218b5ea2a6dbb131448dfd133d600102"
 RUN mkdir -p /usr/src && git clone "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}" && git submodule update --init --recursive
 
@@ -62,12 +62,12 @@ RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure
 FROM fedora-build AS fedora-iwyu
 COPY --from=fedora-git /var/cache/dnf /var/cache/dnf
 RUN dnf install -y clang-devel llvm-devel
-COPY --from=lwyu-download /usr/src/iwyu /usr/src/lwyu
-RUN mkdir -p /tmp/lwyu && cd /tmp/lwyu \
-    && cmake -GNinja /usr/src/lwyu \
+COPY --from=iwyu-download /usr/src/iwyu /usr/src/iwyu
+RUN mkdir -p /tmp/iwyu && cd /tmp/iwyu \
+    && cmake -GNinja /usr/src/iwyu \
     && cmake --build . \
     && cmake --install . \
-    && rm -rf /tmp/lwyu
+    && rm -rf /tmp/iwyu
 
 FROM fedora-build AS fedora-boost
 COPY --from=fedora-git /var/cache/dnf /var/cache/dnf

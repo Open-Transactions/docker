@@ -9,9 +9,13 @@ ARG LIBSECP256K1_REPO="https://github.com/bitcoin/secp256k1"
 ARG LIBSECP256K1_COMMIT="3e5cfc5c73f856010fe646657703faf8d63e7120"
 RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && cd /usr/src/secp256k1 && git reset --hard "${LIBSECP256K1_COMMIT}" && git submodule update --init --recursive
 
+FROM git AS boost-download
+ARG BOOST_COMMIT="a7090e8ce184501cfc9e80afa6cafb5bfd3b371c"
+RUN mkdir -p /usr/src && git clone "https://github.com/boostorg/boost" /usr/src/boost && cd /usr/src/boost && git reset --hard "${BOOST_COMMIT}" && git submodule update --init --recursive
+
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="6b15ec062f6fa5b041721529a0bf98a951cf2309"
+ARG OPENTXS_COMMIT="c4d5a89f65fe91199c63be040fff927fbb8aa3d2"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -22,7 +26,6 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qq install \
     ninja-build \
     libgtest-dev \
     protobuf-compiler \
-    libboost-all-dev \
     liblmdb-dev \
     libprotobuf-dev \
     libsodium-dev \
@@ -50,8 +53,17 @@ RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure
     && make -j install \
     && rm -rf /tmp/secp256k1
 
+FROM build AS boost
+COPY --from=boost-download /usr/src/boost /usr/src/boost
+RUN cd /usr/src/boost \
+    && ./bootstrap.sh --prefix=/usr/local --with-libraries=all \
+    && ./b2 \
+    && ./b2 install
+
 FROM build AS compile
 COPY --from=libsecp256k1 /usr/local /usr/local
+COPY --from=boost /usr/local /usr/
+RUN ldconfig
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
 ARG TEST_JOBS=2
 RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
@@ -63,11 +75,6 @@ RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
 
 FROM base AS run
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get -qq install \
-    libboost-filesystem1.71.0 \
-    libboost-iostreams1.71.0 \
-    libboost-stacktrace1.71.0 \
-    libboost-system1.71.0 \
-    libboost-thread1.71.0 \
     liblmdb0 \
     libprotobuf-lite17 \
     libsodium23 \
