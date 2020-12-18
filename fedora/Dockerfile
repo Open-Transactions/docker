@@ -1,4 +1,4 @@
-FROM fedora:32 AS base
+FROM fedora:33 AS base
 
 FROM base AS git
 RUN dnf install -y git
@@ -9,13 +9,9 @@ ARG LIBSECP256K1_REPO="https://github.com/bitcoin/secp256k1"
 ARG LIBSECP256K1_COMMIT="3e5cfc5c73f856010fe646657703faf8d63e7120"
 RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && cd /usr/src/secp256k1 && git reset --hard "${LIBSECP256K1_COMMIT}" && git submodule update --init --recursive
 
-FROM git AS boost-download
-ARG BOOST_COMMIT="a7090e8ce184501cfc9e80afa6cafb5bfd3b371c"
-RUN mkdir -p /usr/src && git clone "https://github.com/boostorg/boost" /usr/src/boost && cd /usr/src/boost && git reset --hard "${BOOST_COMMIT}" && git submodule update --init --recursive
-
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="c4d5a89f65fe91199c63be040fff927fbb8aa3d2"
+ARG OPENTXS_COMMIT="a3e7a2fa7fc167551f741ca4c0d4b3ca93465544"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -30,7 +26,8 @@ RUN dnf install -y \
     protobuf-lite-devel \
     libsodium-devel \
     openssl-devel \
-    zeromq-devel
+    zeromq-devel \
+    boost-devel
 
 FROM build AS libsecp256k1
 RUN dnf install -y autoconf automake file libtool make
@@ -52,20 +49,10 @@ RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure
     && make -j install \
     && rm -rf /tmp/secp256k1
 
-FROM build AS boost
-COPY --from=git /var/cache/dnf /var/cache/dnf
-RUN dnf install -y which
-COPY --from=boost-download /usr/src/boost /usr/src/boost
-RUN cd /usr/src/boost \
-    && ./bootstrap.sh --prefix=/usr/local --with-libraries=all \
-    && ./b2 \
-    && ./b2 install
-
 FROM build AS compile
 COPY --from=libsecp256k1 /usr/local/include /usr/local/include
 COPY --from=libsecp256k1 /usr/local/lib /usr/local/lib64
 RUN sed -i s~${exec_prefix}/lib~${exec_prefix}/lib64~ /usr/local/lib64/pkgconfig/libsecp256k1.pc
-COPY --from=boost /usr/local /usr/
 RUN ldconfig
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
 ARG TEST_JOBS=2
@@ -83,6 +70,7 @@ RUN dnf install -y \
     libsodium \
     openssl-libs \
     zeromq \
+    boost \
     && rm -rf /var/cache/dnf
 
 FROM run AS opentxs
