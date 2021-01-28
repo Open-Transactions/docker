@@ -11,7 +11,7 @@ RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && 
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="6e4167385fda65f38363bcd02c7e7faaf6ed64a2"
+ARG OPENTXS_COMMIT="44369fbc40e9766cc533ceb2b07c160fb8a0bfd2"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
