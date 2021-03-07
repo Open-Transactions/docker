@@ -5,10 +5,10 @@ RUN dnf install -y git
 
 FROM git AS download
 ARG METIER_REPO="https://github.com/justusranvier/otblockchain"
-ARG METIER_COMMIT="bcadfde3a52b973afba967d59a823f8050afd0e3"
+ARG METIER_COMMIT="283a4fa9de4e2550d168230faeb8850f0fa47821"
 RUN mkdir -p /usr/src && git clone "${METIER_REPO}" /usr/src/metier-server && cd /usr/src/metier-server && git reset --hard "${METIER_COMMIT}" && git submodule update --init --recursive
 
-FROM opentransactions/fedora-devel:6 AS compile
+FROM opentransactions/fedora-devel:7 AS compile
 RUN dnf install -y \
     gcc-c++ \
     cmake \
@@ -21,7 +21,7 @@ RUN mkdir -p /tmp/metier-server && cd /tmp/metier-server \
     && cmake --install . \
     && rm -rf /tmp/metier-server*
 
-FROM opentransactions/fedora:6 AS run
+FROM opentransactions/fedora:7 AS run
 COPY --from=compile /usr/local/bin/otblockchain /usr/bin/metier-server
 ENTRYPOINT [ "/usr/bin/metier-server", "--data_dir=/metier" ]
 CMD []
