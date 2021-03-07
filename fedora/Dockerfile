@@ -11,7 +11,7 @@ RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && 
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="44369fbc40e9766cc533ceb2b07c160fb8a0bfd2"
+ARG OPENTXS_COMMIT="12d1d5f80024be158c3772c075772c7fa6372f61"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -59,7 +59,6 @@ ARG TEST_JOBS=2
 RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
     && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DOPENTXS_BUILD_TESTS=ON -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON -DOT_CASH_USING_LUCRE=ON /usr/src/opentxs \
     && cmake --build . \
-    && ctest -j "${TEST_JOBS}" --repeat until-pass:3 --schedule-random \
     && cmake --install . \
     && rm -rf /tmp/opentxs*
 
