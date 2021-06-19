@@ -1,17 +1,11 @@
-FROM fedora:33 AS base
+FROM fedora:34 AS base
 
 FROM base AS git
 RUN dnf install -y git
 
-# Compile the version we use for the android build since the distro package does not include ecdh support
-FROM git AS libsecp256k1-download
-ARG LIBSECP256K1_REPO="https://github.com/bitcoin/secp256k1"
-ARG LIBSECP256K1_COMMIT="3e5cfc5c73f856010fe646657703faf8d63e7120"
-RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && cd /usr/src/secp256k1 && git reset --hard "${LIBSECP256K1_COMMIT}" && git submodule update --init --recursive
-
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="f01307095a987bf9c09f65b092d472e19bbf66ee"
+ARG OPENTXS_COMMIT="a2b5c6112cf214f5a41b4c11d69634f1149bccdb"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -29,31 +23,7 @@ RUN dnf install -y \
     zeromq-devel \
     boost-devel
 
-FROM build AS libsecp256k1
-RUN dnf install -y autoconf automake file libtool make
-COPY --from=libsecp256k1-download /usr/src/secp256k1 /usr/src/secp256k1
-RUN cd /usr/src/secp256k1 && ./autogen.sh
-RUN mkdir -p /tmp/secp256k1 && cd /tmp/secp256k1 && /usr/src/secp256k1/configure \
-        --prefix=/usr/local \
-        --disable-static \
-        --enable-shared \
-        --disable-openssl-tests \
-        --enable-experimental \
-        --disable-exhaustive-tests \
-        --enable-module-ecdh \
-        --enable-module-recovery \
-        --with-bignum=no \
-        --with-asm=no \
-        --disable-tests \
-        --disable-benchmark \
-    && make -j install \
-    && rm -rf /tmp/secp256k1
-
 FROM build AS compile
-COPY --from=libsecp256k1 /usr/local/include /usr/local/include
-COPY --from=libsecp256k1 /usr/local/lib /usr/local/lib64
-RUN sed -i s~${exec_prefix}/lib~${exec_prefix}/lib64~ /usr/local/lib64/pkgconfig/libsecp256k1.pc
-RUN ldconfig
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
 ARG TEST_JOBS=2
 RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
@@ -74,7 +44,6 @@ RUN dnf install -y \
 
 FROM run AS opentxs
 COPY --from=compile /usr/local/lib64 /usr/lib64
-RUN sed -i s~prefix=/usr/local~prefix=/usr~ /usr/lib64/pkgconfig/libsecp256k1.pc
 RUN ldconfig
 
 FROM opentxs AS opentxs-devel
