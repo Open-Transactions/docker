@@ -8,7 +8,7 @@ ARG METIER_REPO="https://github.com/Open-Transactions/metier-server"
 ARG METIER_COMMIT="2abafcf3fc23252c4103753ea658710b68ecf532"
 RUN mkdir -p /usr/src && git clone "${METIER_REPO}" /usr/src/metier-server && cd /usr/src/metier-server && git reset --hard "${METIER_COMMIT}" && git submodule update --init --recursive
 
-FROM opentransactions/fedora-devel:13 AS compile
+FROM opentransactions/fedora-devel:14 AS compile
 RUN dnf install -y \
     gcc-c++ \
     cmake \
@@ -30,7 +30,7 @@ RUN mkdir -p /tmp/metier-server && cd /tmp/metier-server \
     && cmake --install . \
     && rm -rf /tmp/metier-server*
 
-FROM opentransactions/fedora:13 AS run
+FROM opentransactions/fedora:14 AS run
 COPY --from=compile /usr/local/bin/metier-server /usr/bin/metier-server
 ENTRYPOINT [ "/usr/bin/metier-server", "--data_dir=/metier" ]
 CMD []
