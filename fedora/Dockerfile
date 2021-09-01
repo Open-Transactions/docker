@@ -5,7 +5,7 @@ RUN dnf install -y git
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="7264f9553a49b67a068c23808258d3ee8b5ba7fd"
+ARG OPENTXS_COMMIT="f9a0d7a88760193f2e8e266b6e127f871e0aa49b"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
