@@ -8,7 +8,7 @@ ARG NOTARY_REPO="https://github.com/Open-Transactions/opentxs-notary"
 ARG NOTARY_COMMIT="2ad11816012eb4adc9c0f91047ff309ec2b8ad67"
 RUN mkdir -p /usr/src && git clone "${NOTARY_REPO}" /usr/src/opentxs-notary && cd /usr/src/opentxs-notary && git reset --hard "${NOTARY_COMMIT}" && git submodule update --init --recursive
 
-FROM opentransactions/fedora-devel:22 AS compile
+FROM opentransactions/fedora-devel:23 AS compile
 RUN dnf install -y \
     gcc-c++ \
     cmake \
@@ -30,7 +30,7 @@ RUN mkdir -p /tmp/opentxs-notary && cd /tmp/opentxs-notary \
     && cmake --install . \
     && rm -rf /tmp/opentxs-notary*
 
-FROM opentransactions/fedora:22 AS run
+FROM opentransactions/fedora:23 AS run
 COPY --from=compile /usr/local/bin/opentxs-notary /usr/bin/opentxs-notary
 ENTRYPOINT [ "/usr/bin/opentxs-notary", "--ot_home=/notary" ]
 CMD []
