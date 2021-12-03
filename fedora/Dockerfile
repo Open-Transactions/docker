@@ -1,12 +1,12 @@
-FROM fedora:34 AS base
+FROM fedora:35 AS base
 
 FROM base AS git
 RUN dnf install -y git
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="d7c8d15f9ff3fde8add1d4cb39e377ac033095af"
-RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
+ARG OPENTXS_COMMIT="40f0e8f9da51d531b5f86c6d04d282a98272e2fb"
+RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM git AS build
 RUN dnf install -y \
@@ -14,7 +14,6 @@ RUN dnf install -y \
     gcc-c++ \
     cmake \
     ninja-build \
-    gtest-devel \
     protobuf-compiler \
     lmdb-devel \
     protobuf-lite-devel \
