@@ -33,7 +33,7 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && wget http://dl.bintray.com/boostorg/release/1.74.0/source/boost_1_74_0.tar.bz2
+    && wget https://boostorg.jfrog.io/artifactory/main/release/1.74.0/source/boost_1_74_0.tar.bz2
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
@@ -132,115 +132,6 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-static \
     && make -j$JOBS install && rm -rf /tmp/build \
     && rm -rf /usr/src/sodium
-
-FROM tools AS secp256k1_download
-ARG SECP256K1=3e5cfc5c73f856010fe646657703faf8d63e7120
-RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/bitcoin/secp256k1/archive/${SECP256K1}.zip" \
-    && unzip "${SECP256K1}.zip" && rm "${SECP256K1}.zip" && mv "secp256k1-${SECP256K1}" secp256k1
-
-FROM build_base AS secp256k1
-COPY --from=secp256k1_download /usr/src/secp256k1 /usr/src/secp256k1
-ARG ANDROID_LEVEL=25
-ARG ANDROID_CLANG=24
-ARG JOBS=2
-RUN cd /usr/src/secp256k1 && ./autogen.sh \
-    && mkdir -p /tmp/build && cd /tmp/build \
-    && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar" \
-    && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-as" \
-    && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_CLANG}-clang" \
-    && export CXX="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_CLANG}-clang++" \
-    && export LD="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ld" \
-    && export RANLIB="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ranlib" \
-    && export STRIP="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip" \
-    && /usr/src/secp256k1/configure \
-        --prefix=/usr/android/arm64 \
-        --host=aarch64-linux-android \
-        --with-sysroot="/opt/ndk/sysroot/usr" \
-        --disable-static \
-        --enable-shared \
-        --disable-openssl-tests \
-        --enable-experimental \
-        --disable-exhaustive-tests \
-        --enable-module-ecdh \
-        --enable-module-recovery \
-        --with-bignum=no \
-        --with-asm=no \
-        --disable-tests \
-        --disable-benchmark \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
-        && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ar" \
-        && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-as" \
-        && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_CLANG}-clang" \
-        && export CXX="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_CLANG}-clang++" \
-        && export LD="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ld" \
-        && export RANLIB="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-ranlib" \
-        && export STRIP="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/arm-linux-androideabi-strip" \
-    && /usr/src/secp256k1/configure \
-        --prefix=/usr/android/arm \
-        --host=armv7a-linux-androideabi \
-        --with-sysroot="/opt/ndk/sysroot/usr" \
-        --disable-static \
-        --enable-shared \
-        --disable-openssl-tests \
-        --enable-experimental \
-        --disable-exhaustive-tests \
-        --enable-module-ecdh \
-        --enable-module-recovery \
-        --with-bignum=no \
-        --with-asm=no \
-        --disable-tests \
-        --disable-benchmark \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
-        && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ar" \
-        && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-as" \
-        && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_CLANG}-clang" \
-        && export CXX="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_CLANG}-clang++" \
-        && export LD="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ld" \
-        && export RANLIB="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-ranlib" \
-        && export STRIP="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android-strip" \
-    && /usr/src/secp256k1/configure \
-        --prefix=/usr/android/x64 \
-        --host=x86_64-linux-android \
-        --with-sysroot="/opt/ndk/sysroot/usr" \
-        --disable-static \
-        --enable-shared \
-        --disable-openssl-tests \
-        --enable-experimental \
-        --disable-exhaustive-tests \
-        --enable-module-ecdh \
-        --enable-module-recovery \
-        --with-bignum=no \
-        --with-asm=no \
-        --disable-tests \
-        --disable-benchmark \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
-        && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ar" \
-        && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-as" \
-        && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_CLANG}-clang" \
-        && export CXX="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_CLANG}-clang++" \
-        && export LD="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ld" \
-        && export RANLIB="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-ranlib" \
-        && export STRIP="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android-strip" \
-    && /usr/src/secp256k1/configure \
-        --prefix=/usr/android/x86 \
-        --host=i686-linux-android \
-        --with-sysroot="/opt/ndk/sysroot/usr" \
-        --disable-static \
-        --enable-shared \
-        --disable-openssl-tests \
-        --enable-experimental \
-        --disable-exhaustive-tests \
-        --enable-module-ecdh \
-        --enable-module-recovery \
-        --with-bignum=no \
-        --with-asm=no \
-        --disable-tests \
-        --disable-benchmark \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && rm -rf /usr/src/secp256k1
 
 FROM tools AS lmdb_download
 ARG LMDB=8d0cbbc936091eb85972501a9b31a8f86d4c51a7
@@ -723,7 +614,6 @@ RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 COPY --from=qt /usr/qt-for-android /usr/qt-for-android
 COPY --from=boost /usr/android /usr/android
 COPY --from=sodium /usr/android /usr/android
-COPY --from=secp256k1 /usr/android /usr/android
 COPY --from=lmdb /usr/android /usr/android
 COPY --from=protobuf /usr/android /usr/android
 COPY --from=protobuf /usr/local/protobuf /usr
