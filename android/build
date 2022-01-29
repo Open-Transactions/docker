@@ -2,7 +2,7 @@
 
 ARCH="${1}"
 BINDINGS="${2}"
-ANDROID_PLATFORM="android-25"
+ANDROID_PLATFORM="android-28"
 SRC="/home/src"
 WORK="/tmp/build"
 OUT="/home/output"
@@ -43,24 +43,20 @@ else
 fi
 
 if [ "${BINDINGS}" == "" ]; then
-    export OT_JAVA="ON"
     export OT_QT="ON"
     echo "Enabling default bindings"
+elif [ "${BINDINGS}" == "none" ]; then
+    export OT_QT="OFF"
+    echo "Disabling all bindings"
 elif [ "${BINDINGS}" == "qt" ]; then
-    export OT_JAVA="OFF"
     export OT_QT="ON"
     echo "Enabling qt bindings"
-elif [ "${BINDINGS}" == "java" ]; then
-    export OT_JAVA="ON"
-    export OT_QT="OFF"
-    echo "Enabling java bindings"
-elif [ "${BINDINGS}" == "both" ]; then
-    export OT_JAVA="ON"
+elif [ "${BINDINGS}" == "all" ]; then
     export OT_QT="ON"
     echo "Enabling all bindings"
 else
     echo "Unknown bindings: ${BINDINGS}"
-    echo "Allowed values: qt java both"
+    echo "Allowed values: none qt all"
     exit 1
 fi
 
@@ -80,14 +76,9 @@ cmake \
     -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
     -DOPENTXS_BUILD_TESTS=OFF \
     -DOT_WITH_QT="${OT_QT}" \
-    -DOT_WITH_JAVA="${OT_JAVA}" \
+    -DOT_WITH_QML="${OT_QT}" \
     -DOT_OPENSSL_FLAVOR_LIBRESSL=ON \
     -DCMAKE_INSTALL_PREFIX="${OUT}" \
-    -DJAVA_AWT_LIBRARY=/usr/lib/jvm/jre-openjdk/lib/amd64/libjawt.so \
-    -DJAVA_JVM_LIBRARY=/usr/lib/jvm/jre-openjdk/lib/amd64/server/libjvm.so \
-    -DJAVA_INCLUDE_PATH="${JAVA_HOME}/include" \
-    -DJAVA_INCLUDE_PATH2="${JAVA_HOME}/include/linux" \
-    -DJAVA_AWT_INCLUDE_PATH="${JAVA_HOME}/include" \
     -DCMAKE_SHARED_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
     -DCMAKE_EXE_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
     "${SRC}"
