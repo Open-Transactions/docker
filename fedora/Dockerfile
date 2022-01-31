@@ -5,7 +5,7 @@ RUN dnf install -y git
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="1.90.0"
+ARG OPENTXS_COMMIT="1.93.0"
 RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM git AS build
@@ -20,7 +20,8 @@ RUN dnf install -y \
     libsodium-devel \
     openssl-devel \
     zeromq-devel \
-    boost-devel
+    boost-devel \
+    boost-json
 
 FROM build AS compile
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
@@ -40,6 +41,7 @@ RUN dnf install -y \
     openssl-libs \
     zeromq \
     boost \
+    boost-json \
     && rm -rf /var/cache/dnf
 
 FROM run AS opentxs
