@@ -10,12 +10,12 @@ ARG LIBSECP256K1_COMMIT="3e5cfc5c73f856010fe646657703faf8d63e7120"
 RUN mkdir -p /usr/src && git clone "${LIBSECP256K1_REPO}" /usr/src/secp256k1 && cd /usr/src/secp256k1 && git reset --hard "${LIBSECP256K1_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS boost-download
-ARG BOOST_COMMIT="a7090e8ce184501cfc9e80afa6cafb5bfd3b371c"
+ARG BOOST_COMMIT="b7b1371294b4bdfc8d85e49236ebced114bc1d8f"
 RUN mkdir -p /usr/src && git clone "https://github.com/boostorg/boost" /usr/src/boost && cd /usr/src/boost && git reset --hard "${BOOST_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="c4d5a89f65fe91199c63be040fff927fbb8aa3d2"
+ARG OPENTXS_COMMIT="517a45c7caa565a4a876f12a4812af9d272c2eba"
 RUN mkdir -p /usr/src && git clone "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}" && git submodule update --init --recursive
 
 FROM git AS build
@@ -67,9 +67,8 @@ RUN ldconfig
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
 ARG TEST_JOBS=2
 RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
-    && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DOPENTXS_BUILD_TESTS=ON -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON -DOT_CASH_USING_LUCRE=ON /usr/src/opentxs \
+    && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DOPENTXS_BUILD_TESTS=OFF -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON -DOT_CASH_USING_LUCRE=ON /usr/src/opentxs \
     && cmake --build . \
-    && ctest -j "${TEST_JOBS}" --repeat until-pass:3 --schedule-random \
     && cmake --install . \
     && rm -rf /tmp/opentxs*
 
