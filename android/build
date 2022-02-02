@@ -72,6 +72,7 @@ cmake \
     -DCMAKE_TOOLCHAIN_FILE=/opt/ndk/build/cmake/android.toolchain.cmake \
     -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH};/usr/qt-for-android" \
     -DCMAKE_CROSSCOMPILING_EMULATOR="${CMAKE_CROSSCOMPILING_EMULATOR}" \
+    -DCMAKE_UNITY_BUILD=ON \
     -DBUILD_SHARED_LIBS=ON \
     -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
     -DOPENTXS_BUILD_TESTS=OFF \
