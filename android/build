@@ -2,7 +2,7 @@
 
 ARCH="${1}"
 BINDINGS="${2}"
-ANDROID_PLATFORM="android-28"
+ANDROID_PLATFORM="android-31"
 SRC="/home/src"
 WORK="/tmp/build"
 OUT="/home/output"
@@ -64,13 +64,14 @@ set -e
 
 mkdir -p "${WORK}"
 cd "${WORK}"
-cmake \
+/usr/local/bin/cmake \
     -GNinja \
     -DANDROID_ABI="${ANDROID_ABI}" \
     -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
     -DANDROID_STL="c++_shared" \
     -DCMAKE_TOOLCHAIN_FILE=/opt/ndk/build/cmake/android.toolchain.cmake \
-    -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH};/usr/qt-for-android" \
+    -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH};/usr/qt-for-android/${ARCH}" \
+    -DQT_HOST_PATH="/usr/host_qt" \
     -DCMAKE_CROSSCOMPILING_EMULATOR="${CMAKE_CROSSCOMPILING_EMULATOR}" \
     -DCMAKE_UNITY_BUILD=ON \
     -DBUILD_SHARED_LIBS=ON \
@@ -83,7 +84,7 @@ cmake \
     -DCMAKE_SHARED_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
     -DCMAKE_EXE_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
     "${SRC}"
-cmake --build .
+/usr/local/bin/cmake --build .
 rm -rf "${OUT}/"*
-cmake --install .
+/usr/local/bin/cmake --install .
 cp -a "/usr/android/${ARCH}/include/google" "${OUT}/include/"

@@ -1,28 +1,64 @@
-FROM fedora:33 AS run
-RUN dnf install -y cmake java-devel git ninja-build qemu-user-static swig && rm -rf /var/cache/dnf
+FROM fedora:35 AS run
+RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
 
 FROM run AS tools
-RUN dnf install -y automake bzip2 diffutils findutils gcc gcc-c++ libtool make patch python unzip wget which xz && rm -rf /var/cache/dnf
+RUN dnf install -y \
+    automake \
+    bzip2 \
+    diffutils \
+    findutils \
+    gcc \
+    gcc-c++ \
+    java-devel \
+    libtool \
+    make \
+    openssl-devel \
+    patch \
+    python \
+    unzip \
+    wget \
+    which \
+    xz \
+    && rm -rf /var/cache/dnf
 
 FROM tools as android
-ARG ANDROID_TOOLS=7583922
+ARG ANDROID_TOOLS=8092744
 RUN mkdir -p /opt/android && cd /opt/android && wget "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" \
     && unzip "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" && rm "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip"
 ENV JAVA_HOME /usr/lib/jvm/java
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
     && yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platform-tools" "tools"
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}"
-ARG ANDROID_BUILD_TOOLS=28.0.3
+ARG ANDROID_BUILD_TOOLS=31.0.0
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}"
 ARG NDK=23.0.7599858
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
     && yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
 RUN find /opt/android-sdk-linux/ndk -name libz.a -delete
 
+FROM tools AS cmake-download
+ARG CMAKE_VERSION="3.19.8"
+RUN mkdir -p /usr/src \
+    && cd /usr/src \
+    && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
+    && tar -xf cmake.tar.gz \
+    && rm cmake.tar.gz \
+    && mv "cmake-${CMAKE_VERSION}" cmake
+
+FROM tools AS cmake
+RUN dnf install -y cmake && rm -rf /var/cache/dnf
+COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
+RUN mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && cmake -GNinja /usr/src/cmake \
+    && cmake --build . \
+    && cmake --install .
+
 FROM tools AS build_base
 ARG NDK=23.0.7599858
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
+COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
 FROM tools AS boost_download
@@ -37,7 +73,7 @@ RUN mkdir -p /usr/src && cd /usr/src \
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 COPY ./boost.patch /usr/src/boost/patches/boost-1_76_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/link=static/link=shared/" build-android.sh \
@@ -56,8 +92,8 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/jedisct1/libsod
 
 FROM build_base AS sodium
 COPY --from=sodium_download /usr/src/sodium /usr/src/sodium
-ARG ANDROID_LEVEL=28
-ARG ANDROID_LEVEL_TOOLCHAIN=28
+ARG ANDROID_LEVEL=31
+ARG ANDROID_LEVEL_TOOLCHAIN=31
 ARG JOBS=2
 RUN mkdir -p /tmp/build && cd /tmp/build \
     && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
@@ -140,7 +176,7 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/LMDB/lmdb/archi
 
 FROM build_base AS lmdb
 COPY --from=lmdb_download /usr/src/lmdb /usr/src/lmdb
-ARG ANDROID_LEVEL_TOOLCHAIN=28
+ARG ANDROID_LEVEL_TOOLCHAIN=31
 ARG JOBS=2
 RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
@@ -183,11 +219,11 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/protocolbuffers
 
 FROM build_base AS protobuf
 COPY --from=protobuf_download /usr/src/protobuf /usr/src/protobuf
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 ARG CMAKE_BUILD_TYPE=Release
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DCMAKE_INSTALL_PREFIX=/usr/local/protobuf \
@@ -201,7 +237,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=arm64-v8a \
@@ -221,7 +257,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=armeabi-v7a \
@@ -241,7 +277,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86_64 \
@@ -261,7 +297,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86 \
@@ -288,12 +324,12 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/libressl-portab
 
 FROM build_base AS libressl
 COPY --from=libressl_download /usr/src/libressl /usr/src/libressl
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 ARG CMAKE_BUILD_TYPE=Release
 RUN cd /usr/src/libressl && ./autogen.sh \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=arm64-v8a \
@@ -310,7 +346,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=armeabi-v7a \
@@ -327,7 +363,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86_64 \
@@ -344,7 +380,7 @@ RUN cd /usr/src/libressl && ./autogen.sh \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86 \
@@ -369,11 +405,11 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/zeromq/libzmq/a
 FROM build_base AS zeromq
 COPY --from=zeromq_download /usr/src/zeromq /usr/src/zeromq
 COPY --from=sodium /usr/android /usr/android
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 ARG CMAKE_BUILD_TYPE=Release
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=arm64-v8a \
@@ -437,7 +473,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86_64 \
@@ -469,7 +505,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86 \
@@ -508,12 +544,12 @@ RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/google/goog
 
 FROM build_base as gtest
 COPY --from=gtest_download /usr/src/googletest /usr/src/googletest
-ARG ANDROID_LEVEL=28
+ARG ANDROID_LEVEL=31
 ARG CMAKE_BUILD_TYPE=Release
 ARG JOBS=2
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=arm64-v8a \
@@ -529,7 +565,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=armeabi-v7a \
@@ -544,7 +580,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86_64 \
@@ -559,7 +595,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && cmake \
+    && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
         -DANDROID_ABI=x86 \
@@ -575,8 +611,8 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/googletest
 
 FROM tools AS qt_download
-ARG QT_BRANCH=5.15
-ARG QT_VERSION=5.15.2
+ARG QT_BRANCH=6.2
+ARG QT_VERSION=6.2.3
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
@@ -609,6 +645,7 @@ RUN dnf install -y \
     libXrandr-devel \
     libXrender-devel \
     libevent-devel \
+    libglvnd-devel \
     libicu-devel \
     libicu-devel \
     libjpeg-devel \
@@ -624,12 +661,15 @@ RUN dnf install -y \
     libxkbcommon-x11-devel \
     libxml2-devel \
     libxslt-devel \
+    llvm-devel \
     mesa-libOSMesa-devel \
     mysql-devel \
+    nodejs \
     nss-devel \
     openssl-devel \
     opus-devel \
     pcre2-devel \
+    perl-English \
     protobuf-devel \
     python2 \
     snappy-devel \
@@ -641,34 +681,31 @@ RUN dnf install -y \
 ENV JAVA_HOME /usr/lib/jvm/java
 COPY --from=qt_download /usr/src/qt /usr/src/qt
 ARG JOBS=2
-ARG ANDROID_LEVEL_TOOLCHAIN=28
+ARG ANDROID_LEVEL_TOOLCHAIN=31
 RUN cd /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/ && \
     ln -s llvm-ranlib i686-linux-android-ranlib && \
     ln -s llvm-ranlib x86_64-linux-android-ranlib && \
     ln -s llvm-ranlib arm-linux-androideabi-ranlib && \
     ln -s llvm-ranlib aarch64-linux-android-ranlib
 RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
-    --prefix=/usr \
+    --prefix=/usr/host_qt \
     -opensource \
     -confirm-license \
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++17 \
-    -system-assimp \
-    -system-zlib \
-    -system-sqlite \
-    && make -j$JOBS \
-    && make install \
+    && ninja install \
     && rm -rf /tmp/build
 
 FROM host_qt as qt
 ENV JAVA_HOME /usr/lib/jvm/java
 ARG JOBS=2
-ARG ANDROID_LEVEL_TOOLCHAIN=28
+ARG ANDROID_LEVEL_TOOLCHAIN=31
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
-    --prefix=/usr/qt-for-android \
+    --prefix=/usr/qt-for-android/arm64 \
     --disable-rpath \
+    -qt-host-path /usr/host_qt \
     -opensource \
     -confirm-license \
     -linker lld \
@@ -676,20 +713,74 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -android-ndk-platform android-${ANDROID_LEVEL_TOOLCHAIN} \
     -android-ndk /opt/ndk \
     -android-sdk /opt/android-sdk-linux \
-    -android-abis arm64-v8a,armeabi-v7a,x86_64,x86 \
+    -android-abis arm64-v8a \
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -no-zlib \
     -c++std c++17 \
-    && make -j$JOBS \
-    && make install \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    --prefix=/usr/qt-for-android/arm \
+    --disable-rpath \
+    -qt-host-path /usr/host_qt \
+    -opensource \
+    -confirm-license \
+    -linker lld \
+    -xplatform android-clang \
+    -android-ndk-platform android-${ANDROID_LEVEL_TOOLCHAIN} \
+    -android-ndk /opt/ndk \
+    -android-sdk /opt/android-sdk-linux \
+    -android-abis armeabi-v7a \
+    -nomake tests \
+    -nomake examples \
+    -no-warnings-are-errors \
+    -c++std c++17 \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    --prefix=/usr/qt-for-android/x64 \
+    --disable-rpath \
+    -qt-host-path /usr/host_qt \
+    -opensource \
+    -confirm-license \
+    -linker lld \
+    -xplatform android-clang \
+    -android-ndk-platform android-${ANDROID_LEVEL_TOOLCHAIN} \
+    -android-ndk /opt/ndk \
+    -android-sdk /opt/android-sdk-linux \
+    -android-abis x86_64 \
+    -nomake tests \
+    -nomake examples \
+    -no-warnings-are-errors \
+    -c++std c++17 \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    --prefix=/usr/qt-for-android/x86 \
+    --disable-rpath \
+    -qt-host-path /usr/host_qt \
+    -opensource \
+    -confirm-license \
+    -linker lld \
+    -xplatform android-clang \
+    -android-ndk-platform android-${ANDROID_LEVEL_TOOLCHAIN} \
+    -android-ndk /opt/ndk \
+    -android-sdk /opt/android-sdk-linux \
+    -android-abis x86 \
+    -nomake tests \
+    -nomake examples \
+    -no-warnings-are-errors \
+    -c++std c++17 \
+    && ninja install \
     && rm -rf /tmp/build
 
 FROM run AS final
+
 ARG NDK=23.0.7599858
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
+COPY --from=host_qt /usr/host_qt /usr/host_qt
 COPY --from=qt /usr/qt-for-android /usr/qt-for-android
 COPY --from=boost /usr/android /usr/android
 COPY --from=sodium /usr/android /usr/android
@@ -699,8 +790,7 @@ COPY --from=protobuf /usr/local/protobuf /usr
 COPY --from=libressl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
+COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
-ENV JAVA_HOME /usr/lib/jvm/java
-RUN cp /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/jni.h "${JAVA_HOME}/include"
 ENTRYPOINT [ "/usr/bin/build" ]
 CMD []
