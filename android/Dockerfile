@@ -32,7 +32,7 @@ ARG ANDROID_LEVEL=31
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}"
 ARG ANDROID_BUILD_TOOLS=31.0.0
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}"
-ARG NDK=23.0.7599858
+ARG NDK=23.1.7779620
 RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
     && yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
 RUN find /opt/android-sdk-linux/ndk -name libz.a -delete
@@ -56,7 +56,7 @@ RUN mkdir -p /tmp/build \
     && cmake --install .
 
 FROM tools AS build_base
-ARG NDK=23.0.7599858
+ARG NDK=23.1.7779620
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
@@ -611,10 +611,10 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/googletest
 
 FROM tools AS qt_download
-ARG QT_BRANCH=6.2
-ARG QT_VERSION=6.2.3
+ARG QT_BRANCH=6.3
+ARG QT_VERSION=6.3.0-beta2
 RUN mkdir -p /usr/src && cd /usr/src \
-    && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+    && wget "https://download.qt.io/development_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt
@@ -777,7 +777,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
 
 FROM run AS final
 
-ARG NDK=23.0.7599858
+ARG NDK=23.1.7779620
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 COPY --from=host_qt /usr/host_qt /usr/host_qt
