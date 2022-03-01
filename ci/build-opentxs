@@ -36,6 +36,7 @@ cd "${WORK}"
     -DCMAKE_BUILD_TYPE=Debug \
     -DBUILD_SHARED_LIBS=ON \
     -DOT_LUCRE_DEBUG=OFF \
+    -DOPENTXS_PEDANTIC_BUILD=OFF \
     ${OT_OPTIONS} \
     "${SRC}"
 /usr/local/bin/cmake --build .
