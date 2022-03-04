@@ -14,6 +14,7 @@ RUN dnf install -y \
     git \
     gnutls-devel \
     gtest-devel \
+    gmock-devel \
     harfbuzz \
     libicu \
     libpng \
