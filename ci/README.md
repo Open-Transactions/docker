@@ -14,7 +14,7 @@ docker image build -t opentransactions/ci .
 
 Compile scripts are located in the image /usr/bin/build-opentxs-clang and /usr/bin/build-opentxs-gcc and should be used as the image entrypoint
 
-The entrypoint scripts one parameter for the named opentxs configuration from /var/lib/opentxs-config.
+The entrypoint scripts one parameter for the named opentxs configuration from /var/lib/opentxs-config.sh.
 
 Valid values are: test01 test02 test03 test04 test05 test06 test07 test08 prod nopch full
 
