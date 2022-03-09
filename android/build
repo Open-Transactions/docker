@@ -35,7 +35,7 @@ elif [ "${ARCH}" == "x64" ]; then
 elif [ "${ARCH}" == "x86" ]; then
     export ANDROID_ABI="x86"
     export CMAKE_CROSSCOMPILING_EMULATOR=""
-    export CUSTOM_LDFLAGS="-Wl,-lGLESv2 -Wl,--no-warn-shared-textrel"
+    export CUSTOM_LDFLAGS="-Wl,-lGLESv2"
 else
     echo "Unknown architecture: ${ARCH}"
     echo "Allowed values: arm64 arm x64 x86"
