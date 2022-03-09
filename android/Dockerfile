@@ -1,3 +1,13 @@
+#single point for ARG definitions
+ARG ANDROID_TOOLS=8092744
+ARG ANDROID_LEVEL=31
+ARG ANDROID_LEVEL_TOOLCHAIN=31
+ARG ANDROID_BUILD_TOOLS=31.0.0
+ARG NDK=23.1.7779620
+ARG JOBS=4
+ARG CMAKE_BUILD_TYPE=Release
+ARG JAVA_HOME_ARG=/usr/lib/jvm/java
+
 FROM fedora:35 AS run
 RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
 
@@ -22,20 +32,25 @@ RUN dnf install -y \
     && rm -rf /var/cache/dnf
 
 FROM tools as android
-ARG ANDROID_TOOLS=8092744
-RUN mkdir -p /opt/android && cd /opt/android && wget "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" \
-    && unzip "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" && rm "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip"
-ENV JAVA_HOME /usr/lib/jvm/java
-RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
-    && yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platform-tools" "tools"
-ARG ANDROID_LEVEL=31
-RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}"
-ARG ANDROID_BUILD_TOOLS=31.0.0
-RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}"
-ARG NDK=23.1.7779620
-RUN yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
-    && yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}"
-RUN find /opt/android-sdk-linux/ndk -name libz.a -delete
+ARG ANDROID_TOOLS
+ARG ANDROID_LEVEL
+ARG ANDROID_BUILD_TOOLS
+ARG NDK
+ARG JAVA_HOME_ARG
+ENV JAVA_HOME=$JAVA_HOME_ARG
+RUN mkdir -p /opt/android && \
+    cd /opt/android && \
+    wget "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" && \
+    unzip "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" && \
+    rm "commandlinetools-linux-${ANDROID_TOOLS}_latest.zip" && \
+    yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update && \
+    yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "ndk;${NDK}" && \
+    yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}" && \
+    yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}" && \
+    find /opt/android-sdk-linux/ndk -name libz.a -delete
+#optimize image, the rest is not needed for now
+    #yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platform-tools" "tools"
+    #yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
 
 FROM tools AS cmake-download
 ARG CMAKE_VERSION="3.19.8"
@@ -56,7 +71,7 @@ RUN mkdir -p /tmp/build \
     && cmake --install .
 
 FROM tools AS build_base
-ARG NDK=23.1.7779620
+ARG NDK
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
 COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
@@ -73,7 +88,7 @@ RUN mkdir -p /usr/src && cd /usr/src \
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
-ARG ANDROID_LEVEL=31
+ARG ANDROID_LEVEL
 COPY ./boost.patch /usr/src/boost/patches/boost-1_76_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/link=static/link=shared/" build-android.sh \
@@ -92,9 +107,9 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/jedisct1/libsod
 
 FROM build_base AS sodium
 COPY --from=sodium_download /usr/src/sodium /usr/src/sodium
-ARG ANDROID_LEVEL=31
-ARG ANDROID_LEVEL_TOOLCHAIN=31
-ARG JOBS=2
+ARG ANDROID_LEVEL
+ARG ANDROID_LEVEL_TOOLCHAIN
+ARG JOBS
 RUN mkdir -p /tmp/build && cd /tmp/build \
     && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
     && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-as" \
@@ -176,8 +191,8 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/LMDB/lmdb/archi
 
 FROM build_base AS lmdb
 COPY --from=lmdb_download /usr/src/lmdb /usr/src/lmdb
-ARG ANDROID_LEVEL_TOOLCHAIN=31
-ARG JOBS=2
+ARG ANDROID_LEVEL_TOOLCHAIN
+ARG JOBS
 RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar~" /tmp/build/Makefile \
@@ -219,8 +234,8 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/protocolbuffers
 
 FROM build_base AS protobuf
 COPY --from=protobuf_download /usr/src/protobuf /usr/src/protobuf
-ARG ANDROID_LEVEL=31
-ARG CMAKE_BUILD_TYPE=Release
+ARG ANDROID_LEVEL
+ARG CMAKE_BUILD_TYPE
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
     && /usr/local/bin/cmake \
@@ -324,8 +339,8 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/libressl-portab
 
 FROM build_base AS libressl
 COPY --from=libressl_download /usr/src/libressl /usr/src/libressl
-ARG ANDROID_LEVEL=31
-ARG CMAKE_BUILD_TYPE=Release
+ARG ANDROID_LEVEL
+ARG CMAKE_BUILD_TYPE
 RUN cd /usr/src/libressl && ./autogen.sh \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
@@ -405,8 +420,8 @@ RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/zeromq/libzmq/a
 FROM build_base AS zeromq
 COPY --from=zeromq_download /usr/src/zeromq /usr/src/zeromq
 COPY --from=sodium /usr/android /usr/android
-ARG ANDROID_LEVEL=31
-ARG CMAKE_BUILD_TYPE=Release
+ARG ANDROID_LEVEL
+ARG CMAKE_BUILD_TYPE
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
     && /usr/local/bin/cmake \
@@ -544,9 +559,9 @@ RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/google/goog
 
 FROM build_base as gtest
 COPY --from=gtest_download /usr/src/googletest /usr/src/googletest
-ARG ANDROID_LEVEL=31
-ARG CMAKE_BUILD_TYPE=Release
-ARG JOBS=2
+ARG ANDROID_LEVEL
+ARG CMAKE_BUILD_TYPE
+ARG JOBS
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
     && /usr/local/bin/cmake \
@@ -678,10 +693,11 @@ RUN dnf install -y \
     wayland-devel \
     zlib-devel \
     && rm -rf /var/cache/dnf
-ENV JAVA_HOME /usr/lib/jvm/java
+ARG JAVA_HOME_ARG
+ENV JAVA_HOME=$JAVA_HOME_ARG
 COPY --from=qt_download /usr/src/qt /usr/src/qt
-ARG JOBS=2
-ARG ANDROID_LEVEL_TOOLCHAIN=31
+ARG JOBS
+ARG ANDROID_LEVEL_TOOLCHAIN
 RUN cd /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/ && \
     ln -s llvm-ranlib i686-linux-android-ranlib && \
     ln -s llvm-ranlib x86_64-linux-android-ranlib && \
@@ -699,9 +715,10 @@ RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     && rm -rf /tmp/build
 
 FROM host_qt as qt
-ENV JAVA_HOME /usr/lib/jvm/java
-ARG JOBS=2
-ARG ANDROID_LEVEL_TOOLCHAIN=31
+ARG JAVA_HOME_ARG
+ENV JAVA_HOME=$JAVA_HOME_ARG
+ARG JOBS
+ARG ANDROID_LEVEL_TOOLCHAIN
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/arm64 \
     --disable-rpath \
@@ -776,8 +793,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     && rm -rf /tmp/build
 
 FROM run AS final
-
-ARG NDK=23.1.7779620
+ARG NDK
 COPY --from=android /opt/android-sdk-linux/ndk /opt/android-sdk-linux/ndk
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 COPY --from=host_qt /usr/host_qt /usr/host_qt
