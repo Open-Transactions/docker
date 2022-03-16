@@ -13,8 +13,6 @@ RUN dnf install -y \
     gcc-c++ \
     git \
     gnutls-devel \
-    gtest-devel \
-    gmock-devel \
     harfbuzz \
     libicu \
     libpng \
@@ -32,6 +30,16 @@ RUN dnf install -y \
     which \
     zeromq-devel \
     && rm -rf /var/cache/dnf
+
+FROM fedora-download AS gtest-download
+ARG GTEST_VERSION="release-1.11.0"
+RUN mkdir -p /tmp/gtest/
+RUN wget -O /tmp/gtest/gtest.tar.gz https://github.com/google/googletest/archive/refs/tags/${GTEST_VERSION}.tar.gz
+RUN cd /tmp/gtest && \
+    tar -xf "gtest.tar.gz" && \
+    rm -f "gtest.tar.gz" && \
+    mkdir -p /usr/src && \
+    mv googletest-release-* /usr/src/gtest
 
 FROM fedora-download AS iwyu-download
 ARG IWYU_COMMIT="aa7c6633218b5ea2a6dbb131448dfd133d600102"
@@ -68,6 +76,13 @@ RUN mkdir -p /usr/src && cd /usr/src \
 FROM fedora-download AS opendht-download
 ARG OPENDHT_COMMIT="db000a2f8849584f84a26cba8583a188741e0418"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/savoirfairelinux/opendht" /usr/src/opendht && cd /usr/src/opendht && git reset --hard "${OPENDHT_COMMIT}"
+
+FROM fedora-build AS fedora-gtest
+COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
+RUN mkdir -p /tmp/gtest
+RUN cd /tmp/gtest && \
+    cmake -DBUILD_SHARED_LIBS=ON /usr/src/gtest && \
+    make install
 
 FROM fedora-build AS fedora-iwyu
 RUN dnf install -y clang-devel llvm-devel && rm -rf /var/cache/dnf
@@ -183,14 +198,19 @@ RUN mkdir -p /tmp/opendht && cd /tmp/opendht \
     && rm -rf /tmp/opendht
 
 FROM fedora-build AS opentxs-fedora-ci
-COPY --from=fedora-iwyu /usr/local /usr/
+COPY --from=fedora-gtest /usr/local /usr
+COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr/local
 COPY --from=fedora-cmake /usr/local /usr/local
 COPY --from=fedora-qt /usr/local /usr/local
 COPY --from=fedora-opendht /usr/local /usr/local
 RUN ldconfig
-COPY ./build-opentxs /usr/bin
+COPY ./build-opentxs.sh /usr/bin
 COPY ./build-opentxs-clang /usr/bin
 COPY ./build-opentxs-gcc /usr/bin
 COPY ./test-opentxs /usr/bin
-COPY ./opentxs-config /var/lib
+COPY ./opentxs-config.sh /var/lib
+RUN chmod a+x /usr/bin/build-opentxs.sh
+RUN chmod a+x /usr/bin/build-opentxs-clang
+RUN chmod a+x /usr/bin/build-opentxs-gcc
+RUN chmod a+x /usr/bin/test-opentxs

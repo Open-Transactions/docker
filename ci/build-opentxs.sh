@@ -26,7 +26,7 @@ if [ "${CXX_COMPILER}" == "" ]; then
 fi
 
 set -e
-source /var/lib/opentxs-config "${3}"
+source /var/lib/opentxs-config.sh "${3}"
 rm -rf "${WORK}/"*
 cd "${WORK}"
 /usr/local/bin/cmake \
