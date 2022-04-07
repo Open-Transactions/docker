@@ -1,6 +1,7 @@
 #!/bin/bash
 
-JOBS="${1}"
+#e.g. "-j 10 --output-on-failure --repeat until-pass:5 --timeout 300 --schedule-random"
+CTEST_PARAMS="${1}"
 SRC="/home/src"
 WORK="/home/output"
 
@@ -14,13 +15,15 @@ if [ ! -d "${WORK}" ]; then
     exit 1
 fi
 
-if [ "${JOBS}" == "" ]; then
-    echo "Parallel test jobs not set"
+if [ "${CTEST_PARAMS}" == "" ]; then
+    echo "ctest params not set"
     exit 1
 fi
 
 set -e
 
 cd "${WORK}"
-cmake --install .
-ctest -j "${JOBS}" --repeat until-pass:5 --schedule-random
+
+echo ${CTEST_PARAMS}
+#cmake --install .  #no need to install
+ctest ${CTEST_PARAMS}
