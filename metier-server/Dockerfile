@@ -5,7 +5,7 @@ RUN dnf install -y git
 
 FROM git AS download
 ARG METIER_REPO="https://github.com/Open-Transactions/metier-server"
-ARG METIER_COMMIT="3dfba7956071bc8a76171200d60f6c5f4b493cd6"
+ARG METIER_COMMIT="90ce60fe182430bdc687d82004640c33dc6ba310"
 RUN mkdir -p /usr/src && git clone --recursive "${METIER_REPO}" /usr/src/metier-server && cd /usr/src/metier-server && git reset --hard "${METIER_COMMIT}"
 
 FROM opentransactions/fedora-devel:35 AS compile
