@@ -3,7 +3,7 @@ ARG ANDROID_TOOLS=8092744
 ARG ANDROID_LEVEL=31
 ARG ANDROID_LEVEL_TOOLCHAIN=31
 ARG ANDROID_BUILD_TOOLS=31.0.0
-ARG NDK=23.1.7779620
+ARG NDK=24.0.8215888
 ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
@@ -48,12 +48,9 @@ RUN mkdir -p /opt/android && \
     yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platforms;android-${ANDROID_LEVEL}" && \
     yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}" && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
-#optimize image, the rest is not needed for now
-    #yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "platform-tools" "tools"
-    #yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux --update \
 
 FROM tools AS cmake-download
-ARG CMAKE_VERSION="3.19.8"
+ARG CMAKE_VERSION="3.23.1"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
@@ -92,6 +89,7 @@ ARG ANDROID_LEVEL
 COPY ./boost.patch /usr/src/boost/patches/boost-1_76_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/link=static/link=shared/" build-android.sh \
+    && sed -i 's/\"23.1\")/\"23.1\"|\"24.0\")/' build-android.sh \
     && ./build-android.sh --boost=1.76.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
     && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
@@ -627,9 +625,9 @@ RUN mkdir -p /tmp/build \
 
 FROM tools AS qt_download
 ARG QT_BRANCH=6.3
-ARG QT_VERSION=6.3.0-beta2
+ARG QT_VERSION=6.3.0
 RUN mkdir -p /usr/src && cd /usr/src \
-    && wget "https://download.qt.io/development_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+    && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt

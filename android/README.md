@@ -5,17 +5,16 @@ This image creates an Android NDK development environment and compiles all opent
 ## Contents
 
 * Android SDK
-  * Platform (android-25)
-  * Android NDK (21.1.6528147)
-* Boost (1.74)
-* Libsodium (1.0.18)
-* Secp256k1 (3e5cfc5)
-* LMDB (8d0cbbc)
-* Protocol Buffers (3.12.3)
-* LibreSSL (3.1.3)
-* ZeroMQ (4.3.2)
+  * Platform (android-31)
+  * Android NDK (24.0.8215888)
+* Boost (1.76)
 * Googletest (1.10.0)
-* Qt (5.15.0)
+* LMDB (8d0cbbc)
+* LibreSSL (3.1.3)
+* Libsodium (1.0.18)
+* Protocol Buffers (3.19.4)
+* Qt (6.3.0)
+* ZeroMQ (4.3.4)
 
 ## Usage
 
@@ -29,22 +28,22 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 
 #### Optional arguments for customizing the image contents
 
-* JOBS
-* CMAKE_BUILD_TYPE
-* ANDROID_TOOLS
-* ANDROID_LEVEL
-* ANDROID_CLANG
 * ANDROID_BUILD_TOOLS
-* NDK
+* ANDROID_CLANG
+* ANDROID_LEVEL
+* ANDROID_TOOLS
 * BOOST
-* SODIUM
-* SECP256K1
-* LMDB
-* PROTOBUF
+* CMAKE_BUILD_TYPE
+* JOBS
 * LIBRESSL
-* ZMQ
+* LMDB
+* NDK
+* PROTOBUF
 * QT_BRANCH
 * QT_VERSION
+* SECP256K1
+* SODIUM
+* ZMQ
 
 ### Compiling opentxs
 
