@@ -53,6 +53,31 @@ elif [ "${OT_BUILD_VARIANT}" == "nopch" ]; then
         -DOT_WITH_BLOCKCHAIN=ON \
         -DOT_CRYPTO_USING_PACKETCRYPT=ON \
         -DOT_ENABLE_RPC=ON"
+elif [ "${OT_BUILD_VARIANT}" == "tidy" ]; then
+    export OT_OPTIONS="
+        -DOT_CLANG_TIDY=ON \
+        -DOT_PCH=OFF \
+        -DCMAKE_UNITY_BUILD=OFF \
+        -DCMAKE_UNITY_BUILD_BATCH_SIZE=1 \
+        -DOPENTXS_BUILD_TESTS=ON \
+        -DOPENTXS_PEDANTIC_BUILD=ON \
+        -DOT_VALGRIND=ON \
+        -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON \
+        -DOT_CRYPTO_SUPPORTED_KEY_SECP256K1=ON \
+        -DOT_CRYPTO_SUPPORTED_KEY_ED25519=ON \
+        -DOT_CRYPTO_USING_LIBSECP256K1=ON \
+        -DOT_CRYPTO_USING_OPENSSL=ON \
+        -DOT_DHT=ON \
+        -DOT_CASH_USING_LUCRE=ON \
+        -DOT_SCRIPT_USING_CHAI=ON \
+        -DOT_WITH_QT=ON \
+        -DOT_WITH_QML=ON \
+        -DOT_STORAGE_FS=ON \
+        -DOT_STORAGE_SQLITE=ON \
+        -DOT_STORAGE_LMDB=ON \
+        -DOT_WITH_BLOCKCHAIN=ON \
+        -DOT_CRYPTO_USING_PACKETCRYPT=ON \
+        -DOT_ENABLE_RPC=ON"
 elif [ "${OT_BUILD_VARIANT}" == "full" ]; then
     export OT_OPTIONS="
         -DOT_PCH=ON \
