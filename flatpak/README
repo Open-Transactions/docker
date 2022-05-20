@@ -1,0 +1,82 @@
+##############
+theory
+
+In order to be able to submerge flatpak into docker image we need some permission/OS-level trickery that
+docker does not allow easily. This is because flatpak is kind of a containerization technology, which docker
+is even more. While installing flatpak runtime, it requires OS-level permissions that native docker
+images do not have. To circumvent that we build upon docker images prepared by flatpak creators themselves.
+Their work was targeting github actions, but the underlying technology is docker. We can re-use that.
+Links:
+https://github.com/bilelmoussaoui/flatpak-github-actions
+https://github.com/bilelmoussaoui/flatpak-github-actions/blob/master/Dockerfile
+https://github.com/bilelmoussaoui/flatpak-github-actions/blob/master/.github/workflows/docker.yml
+
+##############
+building images
+
+docker image build -t polishcode/flatpak:kde-5.15-1       -f Dockerfile-flatpak-kde-5.15 .
+docker image build -t polishcode/flatpak:kde-5.15-21.08-1 -f Dockerfile-flatpak-kde-5.15-21.08 .
+
+naming pattern (flatpak:kde-5.15-1):
+    flatpak  docker image dedicated to building flatpak releases
+    kde-5.15 underlying flatpak runtime
+    -1       docker image version
+
+this will not work:
+docker image build -t matterfi/flatpak .
+
+##############
+running locally (for e.g. testing purposes)
+
+subfolder local/ contains helper scripts for running flatpak build on your local machine
+exemplary high-level configuration:
+    windows OS
+    execution environment: WSL2
+
+##############
+research notes that have lead to our solution
+
+insecure permission is required for flatpak deps to work inside docker:
+
+https://github.com/moby/moby/issues/1916#issuecomment-530278444
+https://docs.docker.com/engine/reference/commandline/buildx_build/#allow
+
+docker buildx create --use --name insecure-builder --buildkitd-flags '--allow-insecure-entitlement security.insecure'
+docker buildx build --allow security.insecure -o type=docker,name=matterfi/flatpak -f Dockerfile .
+
+docker run --mount type=bind,src=/home/circleci/project,dst=/home/src --mount type=bind,src=/home/circleci/opentxs-for-android/<<parameters.arch>>,dst=/home/output -i <<parameters.docker-image>> <<parameters.arch>> all
+docker run --mount type=bind,src=/home/circleci/project,dst=/home/src --mount type=bind,src=/tmp/opentxs,dst=/home/output -i --entrypoint /usr/bin/build-opentxs-<<parameters.compiler>> <<parameters.docker-image>> <<parameters.flavor>> 
+
+
+###
+docker network create --label 08450d github_network_890a510974b14a6aa226f9125d096ef3
+docker pull bilelmoussaoui/flatpak-github-actions:kde-5.15
+docker create   --name 265eed72840145ae9d625954a754b506_bilelmoussaouiflatpakgithubactionskde515_b9b361 \
+                --label 08450d \
+                --workdir /__w/metier/metier \
+                --network github_network_890a510974b14a6aa226f9125d096ef3 \
+                --privileged \
+                -e "HOME=/github/home" -e GITHUB_ACTIONS=true -e CI=true \
+                -v "/var/run/docker.sock":"/var/run/docker.sock" \
+                -v "/home/runner/work":"/__w" \
+                -v "/home/runner/runners/2.291.1/externals":"/__e":ro \
+                -v "/home/runner/work/_temp":"/__w/_temp" \
+                -v "/home/runner/work/_actions":"/__w/_actions" \
+                -v "/opt/hostedtoolcache":"/__t" \
+                -v "/home/runner/work/_temp/_github_home":"/github/home" \
+                -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" \
+                --entrypoint "tail" bilelmoussaoui/flatpak-github-actions:kde-5.15 "-f" "/dev/null"
+
+9d5c8ad60351666a2bfdcd92b750f77b6060c8b6a6c047a23e483444f017f95a
+docker start 9d5c8ad60351666a2bfdcd92b750f77b6060c8b6a6c047a23e483444f017f95a
+docker inspect --format "{{range .Config.Env}}{{println .}}{{end}}" 9d5c8ad60351666a2bfdcd92b750f77b6060c8b6a6c047a23e483444f017f95a
+docker exec  9d5c8ad60351666a2bfdcd92b750f77b6060c8b6a6c047a23e483444f017f95a sh -c "cat /etc/*release | grep ^ID"
+ID=fedora
+docker ps --all --filter id=9d5c8ad60351666a2bfdcd92b750f77b6060c8b6a6c047a23e483444f017f95a --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+
+https://github.com/bilelmoussaoui/flatpak-github-actions/blob/master/Dockerfile
+
+docker exec dck-flh-executor ls -alF /home/src
+docker exec -w /home/output dck-flh-executor /usr/bin/xvfb-run --auto-servernum flatpak-builder --repo=repo --disable-rofiles-fuse --install-deps-from=flathub --force-clean --ccache flatpak_app /home/src/package/gui.flatpak.json
+
+docker exec -w /var/log boring_hawking tar -cv ./file.log

@@ -1,0 +1,4 @@
+FROM bilelmoussaoui/flatpak-github-actions:kde-5.15-21.08
+
+RUN dnf update -y && \
+    dnf clean all

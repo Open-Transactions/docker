@@ -1,0 +1,18 @@
+##############
+run-container.sh
+    allows us to easily start the container locally and open command prompt
+    mounts paths accordingly to local environment, so you will need to tune it based on your setup
+    running it locally should result in:
+    
+    pgawron@DESKTOP-TJSC50O:/mnt/f/repo-matterfi/docker/flatpak/local$ ./run-container.sh
+    [root@88ea0df7c389 script]# ll
+    total 8
+    -rwxrwxrwx 1 1000 1000 797 May 31 15:09 README
+    -rwxrwxrwx 1 1000 1000 918 May 31 15:03 build-in-container.sh
+    -rwxrwxrwx 1 1000 1000 348 May 31 15:11 run-container.sh
+
+    now you should have access to build-flatpak.sh both from container and from host OS
+    which is nice to be able to actively modify it and test
+
+build-flatpak.sh
+    performs flatpak build of wallet
