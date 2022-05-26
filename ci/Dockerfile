@@ -47,7 +47,7 @@ RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-
 
 FROM fedora-download AS boost-download
 ARG BOOST_MAJOR="1"
-ARG BOOST_MINOR="75"
+ARG BOOST_MINOR="79"
 ARG BOOST_PATCH="0"
 RUN mkdir -p /usr/src \
     && wget -O /usr/src/boost.tar.bz2 "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}.tar.bz2" \

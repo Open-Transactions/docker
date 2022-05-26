@@ -38,4 +38,4 @@ cd "${WORK}"
     -DOT_LUCRE_DEBUG=OFF \
     ${OT_OPTIONS} \
     "${SRC}"
-/usr/local/bin/cmake --build .
+/usr/local/bin/cmake --build . -- -k 0
