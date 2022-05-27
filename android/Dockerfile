@@ -8,7 +8,7 @@ ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
 
-FROM fedora:35 AS run
+FROM fedora:36 AS run
 RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
 
 FROM run AS tools
@@ -50,7 +50,7 @@ RUN mkdir -p /opt/android && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS cmake-download
-ARG CMAKE_VERSION="3.23.1"
+ARG CMAKE_VERSION="3.23.2"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
@@ -74,23 +74,23 @@ COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
 FROM tools AS boost_download
-ARG BOOST=ccfc74f1c9ceb35d304294d4f1ed3abff43d2e01
+ARG BOOST=0e12fbd30cb70b668a117c0913a303acfdaae04f
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && wget https://boostorg.jfrog.io/artifactory/main/release/1.76.0/source/boost_1_76_0.tar.bz2
+    && wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL
-COPY ./boost.patch /usr/src/boost/patches/boost-1_76_0/suffix.patch
+COPY ./boost.patch /usr/src/boost/patches/boost-1_78_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/link=static/link=shared/" build-android.sh \
     && sed -i 's/\"23.1\")/\"23.1\"|\"24.0\")/' build-android.sh \
-    && ./build-android.sh --boost=1.76.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
+    && ./build-android.sh --boost=1.78.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
     && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
     && mv /usr/src/boost/build/out/armeabi-v7a /usr/android/arm \
@@ -806,5 +806,6 @@ COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
+RUN /usr/bin/git config --system --add safe.directory '*'
 ENTRYPOINT [ "/usr/bin/build" ]
 CMD []

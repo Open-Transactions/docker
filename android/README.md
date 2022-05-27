@@ -7,7 +7,7 @@ This image creates an Android NDK development environment and compiles all opent
 * Android SDK
   * Platform (android-31)
   * Android NDK (24.0.8215888)
-* Boost (1.76)
+* Boost (1.78)
 * Googletest (1.10.0)
 * LMDB (8d0cbbc)
 * LibreSSL (3.1.3)
