@@ -9,7 +9,7 @@ ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
 
 FROM fedora:36 AS run
-RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
+RUN dnf install -y git ninja-build openssl1.1 pcre2-devel && rm -rf /var/cache/dnf
 
 FROM run AS tools
 RUN dnf install -y \
@@ -804,8 +804,6 @@ COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
-# TODO move to run target
-RUN dnf install -y openssl1.1 && rm -rf /var/cache/dnf
 RUN /usr/bin/git config --system --add safe.directory '*'
 ENTRYPOINT [ "/usr/bin/build" ]
 CMD []
