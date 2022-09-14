@@ -3,7 +3,7 @@ ARG ANDROID_TOOLS=8092744
 ARG ANDROID_LEVEL=31
 ARG ANDROID_LEVEL_TOOLCHAIN=31
 ARG ANDROID_BUILD_TOOLS=31.0.0
-ARG NDK=24.0.8215888
+ARG NDK=25.1.8937393
 ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
@@ -22,7 +22,7 @@ RUN dnf install -y \
     java-devel \
     libtool \
     make \
-    openssl-devel \
+    openssl1.1-devel \
     patch \
     python \
     unzip \
@@ -50,7 +50,7 @@ RUN mkdir -p /opt/android && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS cmake-download
-ARG CMAKE_VERSION="3.23.2"
+ARG CMAKE_VERSION="3.24.2"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
@@ -74,23 +74,22 @@ COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
 
 FROM tools AS boost_download
-ARG BOOST=0e12fbd30cb70b668a117c0913a303acfdaae04f
+ARG BOOST=4067aed71278e292d1b78d8a13431f01f80012f1
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && wget https://boostorg.jfrog.io/artifactory/main/release/1.78.0/source/boost_1_78_0.tar.bz2
+    && wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL
-COPY ./boost.patch /usr/src/boost/patches/boost-1_78_0/suffix.patch
+COPY ./boost.patch /usr/src/boost/patches/boost-1_80_0/suffix.patch
 RUN cd /usr/src/boost \
     && sed -i "s/link=static/link=shared/" build-android.sh \
-    && sed -i 's/\"23.1\")/\"23.1\"|\"24.0\")/' build-android.sh \
-    && ./build-android.sh --boost=1.78.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
+    && ./build-android.sh --boost=1.80.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
     && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
     && mv /usr/src/boost/build/out/armeabi-v7a /usr/android/arm \
@@ -625,7 +624,7 @@ RUN mkdir -p /tmp/build \
 
 FROM tools AS qt_download
 ARG QT_BRANCH=6.3
-ARG QT_VERSION=6.3.0
+ARG QT_VERSION=6.3.2
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
@@ -676,10 +675,9 @@ RUN dnf install -y \
     libxslt-devel \
     llvm-devel \
     mesa-libOSMesa-devel \
-    mysql-devel \
     nodejs \
     nss-devel \
-    openssl-devel \
+    openssl1.1-devel \
     opus-devel \
     pcre2-devel \
     perl-English \
@@ -806,6 +804,8 @@ COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
+# TODO move to run target
+RUN dnf install -y openssl1.1 && rm -rf /var/cache/dnf
 RUN /usr/bin/git config --system --add safe.directory '*'
 ENTRYPOINT [ "/usr/bin/build" ]
 CMD []

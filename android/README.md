@@ -6,14 +6,14 @@ This image creates an Android NDK development environment and compiles all opent
 
 * Android SDK
   * Platform (android-31)
-  * Android NDK (24.0.8215888)
-* Boost (1.78)
+  * Android NDK (25.1.8937393)
+* Boost (1.80)
 * Googletest (1.10.0)
 * LMDB (8d0cbbc)
 * LibreSSL (3.1.3)
 * Libsodium (1.0.18)
 * Protocol Buffers (3.19.4)
-* Qt (6.3.0)
+* Qt (6.3.2)
 * ZeroMQ (4.3.4)
 
 ## Usage
@@ -49,7 +49,7 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 
 Valid architectures (first argument, mandatory): arm64 arm x64 x86
 
-Valid bindings (second argument, optional): java qt both
+Valid bindings (second argument, optional): none qt all
 
 
 #### Example
@@ -62,5 +62,5 @@ docker run \
     --mount type=bind,src=/desired/output/directory,dst=/home/output \
     -it opentransactions/android:latest \
     arm64 \
-    qt
+    all
 ```
