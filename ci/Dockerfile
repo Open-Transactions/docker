@@ -1,4 +1,4 @@
-FROM fedora:34 AS fedora-base
+FROM fedora:35 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
@@ -42,17 +42,8 @@ RUN cd /tmp/gtest && \
     mv googletest-release-* /usr/src/gtest
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="78577f2ba2cd6f486bac92be9716e04cf88db92c"
+ARG IWYU_COMMIT="fbd921d6640bf1b18fe5a8a895636215367eb6b9"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
-
-FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION="3.21.7"
-RUN mkdir -p /usr/src \
-    && cd /usr/src \
-    && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
-    && tar -xf cmake.tar.gz \
-    && rm cmake.tar.gz \
-    && mv "cmake-${CMAKE_VERSION}" cmake
 
 FROM fedora-build AS fedora-gtest
 COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
@@ -70,19 +61,10 @@ RUN mkdir -p /tmp/iwyu && cd /tmp/iwyu \
     && cmake --install . \
     && rm -rf /tmp/iwyu
 
-FROM fedora-build AS fedora-cmake
-COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
-    && cmake -GNinja /usr/src/cmake \
-    && cmake --build . \
-    && cmake --install .
-
 FROM fedora-build AS opentxs-fedora-ci
 RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-gtest /usr/local /usr
 COPY --from=fedora-iwyu /usr/local /usr
-COPY --from=fedora-cmake /usr/local /usr/local
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./check-formatting.sh /usr/bin

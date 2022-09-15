@@ -16,7 +16,7 @@ if [ ! -d "${WORK}" ]; then
 fi
 
 rm -rf "${WORK}/"*
-/usr/local/bin/cmake \
+/usr/bin/cmake \
     -S "${SRC}" \
     -B "${WORK}" \
     --preset nopch \
@@ -26,7 +26,7 @@ rm -rf "${WORK}/"*
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DOPENTXS_PEDANTIC_BUILD=OFF \
     -DOT_IWYU=ON
-/usr/local/bin/cmake \
+/usr/bin/cmake \
     --build "${WORK}" \
     -- -k 0 \
     | tee "${WORK}/iwyu.txt"
