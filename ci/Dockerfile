@@ -1,4 +1,4 @@
-FROM fedora:34 AS fedora-base
+FROM fedora:35 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
@@ -46,7 +46,7 @@ RUN cd /tmp/gtest && \
     mv googletest-release-* /usr/src/gtest
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="78577f2ba2cd6f486bac92be9716e04cf88db92c"
+ARG IWYU_COMMIT="fbd921d6640bf1b18fe5a8a895636215367eb6b9"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-build AS fedora-gtest
