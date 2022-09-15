@@ -29,7 +29,7 @@ set -e
 source /var/lib/opentxs-config.sh "${3}"
 rm -rf "${WORK}/"*
 cd "${WORK}"
-/usr/local/bin/cmake \
+/usr/bin/cmake \
     -GNinja \
     -DCMAKE_C_COMPILER="${C_COMPILER}" \
     -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
@@ -38,4 +38,4 @@ cd "${WORK}"
     -DOT_LUCRE_DEBUG=OFF \
     ${OT_OPTIONS} \
     "${SRC}"
-/usr/local/bin/cmake --build . -- -k 0
+/usr/bin/cmake --build . -- -k 0
