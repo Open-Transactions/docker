@@ -26,7 +26,7 @@ docker run \
     --tmpfs /tmp/build:rw,nosuid,size=2g \
     --mount readonly,type=bind,src=/path/to/opentxs,dst=/home/src \
     --mount type=bind,src=/path/to/build/directory,dst=/home/output \
-    -it opentransactions/ci:34_1 \
+    -it opentransactions/ci:35_1 \
     gcc \
     full
 ```
@@ -39,7 +39,7 @@ docker run \
     --tmpfs /tmp/build:rw,nosuid,size=2g \
     --mount type=bind,src=/path/to/opentxs,dst=/home/src \
     --entrypoint /usr/bin/check-formatting.sh \
-    -it opentransactions/ci:34_1
+    -it opentransactions/ci:35_1
 ```
 
 ### Check includes
@@ -51,5 +51,5 @@ docker run \
     --mount type=bind,src=/path/to/opentxs,dst=/home/src \
     --mount type=bind,src=/path/to/build/directory,dst=/home/output \
     --entrypoint /usr/bin/run-iwyu.sh \
-    -it opentransactions/ci:34_1
+    -it opentransactions/ci:35_1
 ```

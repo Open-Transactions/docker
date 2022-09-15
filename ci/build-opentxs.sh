@@ -33,13 +33,13 @@ fi
 set -e
 
 rm -rf "${WORK}/"*
-/usr/local/bin/cmake \
+/usr/bin/cmake \
     -S "${SRC}" \
     -B "${WORK}" \
     --preset "${PRESET}"\
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_C_COMPILER="${CMAKE_C_COMPILER}" \
     -DCMAKE_CXX_COMPILER="${CMAKE_CXX_COMPILER}"
-/usr/local/bin/cmake \
+/usr/bin/cmake \
     --build "${WORK}" \
     -- -k 0
