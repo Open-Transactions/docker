@@ -1,4 +1,4 @@
-FROM fedora:35 AS fedora-base
+FROM fedora:36 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
@@ -9,21 +9,16 @@ RUN dnf install -y \
     boost-json \
     clang \
     clang-analyzer \
+    clang-tools-extra \
     cmake \
     cppcheck \
     gcc \
     gcc-c++ \
     git \
-    gnutls-devel \
-    harfbuzz \
-    libicu \
-    libpng \
+    gmock-devel \
+    gtest-devel \
     libsodium-devel \
-    llvm \
     lmdb-devel \
-    mesa-libGL \
-    mesa-libOSMesa \
-    msgpack-devel \
     ninja-build \
     openssl-devel \
     protobuf-compiler \
@@ -35,26 +30,9 @@ RUN dnf install -y \
     zeromq-devel \
     && rm -rf /var/cache/dnf
 
-FROM fedora-download AS gtest-download
-ARG GTEST_VERSION="release-1.11.0"
-RUN mkdir -p /tmp/gtest/
-RUN wget -O /tmp/gtest/gtest.tar.gz https://github.com/google/googletest/archive/refs/tags/${GTEST_VERSION}.tar.gz
-RUN cd /tmp/gtest && \
-    tar -xf "gtest.tar.gz" && \
-    rm -f "gtest.tar.gz" && \
-    mkdir -p /usr/src && \
-    mv googletest-release-* /usr/src/gtest
-
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="fbd921d6640bf1b18fe5a8a895636215367eb6b9"
+ARG IWYU_COMMIT="abd5d2bd6320867d3605227a7f798a4e08fef896"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
-
-FROM fedora-build AS fedora-gtest
-COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
-RUN mkdir -p /tmp/gtest
-RUN cd /tmp/gtest && \
-    cmake -DBUILD_SHARED_LIBS=ON /usr/src/gtest && \
-    make install
 
 FROM fedora-build AS fedora-iwyu
 RUN dnf install -y clang-devel llvm-devel && rm -rf /var/cache/dnf
@@ -66,7 +44,6 @@ RUN mkdir -p /tmp/iwyu && cd /tmp/iwyu \
     && rm -rf /tmp/iwyu
 
 FROM fedora-build AS opentxs-fedora-ci
-COPY --from=fedora-gtest /usr/local /usr
 COPY --from=fedora-iwyu /usr/local /usr
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
