@@ -1,4 +1,4 @@
-FROM fedora:32 AS fedora-base
+FROM fedora:33 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
@@ -42,12 +42,12 @@ RUN cd /tmp/gtest && \
     mv googletest-release-* /usr/src/gtest
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="aa7c6633218b5ea2a6dbb131448dfd133d600102"
+ARG IWYU_COMMIT="5db414ac448004fe019871c977905cb7c2cff23f"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-download AS boost-download
 ARG BOOST_MAJOR="1"
-ARG BOOST_MINOR="79"
+ARG BOOST_MINOR="75"
 ARG BOOST_PATCH="0"
 RUN mkdir -p /usr/src \
     && wget -O /usr/src/boost.tar.bz2 "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}.tar.bz2" \
@@ -56,7 +56,7 @@ RUN mkdir -p /usr/src \
     && mv "/usr/src/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
 FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION="3.22.2"
+ARG CMAKE_VERSION="3.20.0"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
@@ -72,10 +72,6 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt
-
-FROM fedora-download AS opendht-download
-ARG OPENDHT_COMMIT="db000a2f8849584f84a26cba8583a188741e0418"
-RUN mkdir -p /usr/src && git clone --recursive "https://github.com/savoirfairelinux/opendht" /usr/src/opendht && cd /usr/src/opendht && git reset --hard "${OPENDHT_COMMIT}"
 
 FROM fedora-build AS fedora-gtest
 COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
@@ -179,31 +175,12 @@ RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     && make install \
     && rm -rf /tmp/build
 
-FROM fedora-build AS fedora-opendht
-RUN dnf install -y libargon2-devel && rm -rf /var/cache/dnf
-COPY --from=opendht-download /usr/src/opendht /usr/src/opendht
-RUN mkdir -p /tmp/opendht && cd /tmp/opendht \
-    && cmake \
-        -GNinja \
-        -DOPENDHT_STATIC=OFF \
-        -DOPENDHT_LOG=OFF \
-        -DOPENDHT_TOOLS=OFF \
-        -DOPENDHT_PROXY_OPENSSL=OFF \
-        -DOPENDHT_PEER_DISCOVERY=OFF \
-        -DOPENDHT_TESTS_NETWORK=OFF \
-        -DOPENDHT_DOCUMENTATION=OFF \
-        /usr/src/opendht \
-    && cmake --build . \
-    && cmake --install . \
-    && rm -rf /tmp/opendht
-
 FROM fedora-build AS opentxs-fedora-ci
 COPY --from=fedora-gtest /usr/local /usr
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr/local
 COPY --from=fedora-cmake /usr/local /usr/local
 COPY --from=fedora-qt /usr/local /usr/local
-COPY --from=fedora-opendht /usr/local /usr/local
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./build-opentxs-clang /usr/bin
@@ -214,3 +191,4 @@ RUN chmod a+x /usr/bin/build-opentxs.sh
 RUN chmod a+x /usr/bin/build-opentxs-clang
 RUN chmod a+x /usr/bin/build-opentxs-gcc
 RUN chmod a+x /usr/bin/test-opentxs
+RUN git config --global --add safe.directory /home/src
