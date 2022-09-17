@@ -706,7 +706,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -c++std c++17 \
+    -c++std c++20 \
     && ninja install \
     && rm -rf /tmp/build
 
@@ -730,7 +730,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -c++std c++17 \
+    -c++std c++20 \
     && ninja install \
     && rm -rf /tmp/build
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
@@ -748,7 +748,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -c++std c++17 \
+    -c++std c++20 \
     && ninja install \
     && rm -rf /tmp/build
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
@@ -766,7 +766,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -c++std c++17 \
+    -c++std c++20 \
     && ninja install \
     && rm -rf /tmp/build
 RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
@@ -784,7 +784,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake tests \
     -nomake examples \
     -no-warnings-are-errors \
-    -c++std c++17 \
+    -c++std c++20 \
     && ninja install \
     && rm -rf /tmp/build
 
