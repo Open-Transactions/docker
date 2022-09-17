@@ -1,7 +1,6 @@
 #!/bin/bash
 
 ARCH="${1}"
-BINDINGS="${2}"
 ANDROID_PLATFORM="android-31"
 SRC="/home/src"
 WORK="/tmp/build"
@@ -42,49 +41,36 @@ else
     exit 1
 fi
 
-if [ "${BINDINGS}" == "" ]; then
-    export OT_QT="ON"
-    echo "Enabling default bindings"
-elif [ "${BINDINGS}" == "none" ]; then
-    export OT_QT="OFF"
-    echo "Disabling all bindings"
-elif [ "${BINDINGS}" == "qt" ]; then
-    export OT_QT="ON"
-    echo "Enabling qt bindings"
-elif [ "${BINDINGS}" == "all" ]; then
-    export OT_QT="ON"
-    echo "Enabling all bindings"
-else
-    echo "Unknown bindings: ${BINDINGS}"
-    echo "Allowed values: none qt all"
-    exit 1
-fi
-
 set -e
 
-mkdir -p "${WORK}"
-cd "${WORK}"
+rm -rf "${OUT}/"*
 /usr/local/bin/cmake \
+    -S "${SRC}" \
+    -B "${WORK}" \
     -GNinja \
     -DANDROID_ABI="${ANDROID_ABI}" \
     -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
     -DANDROID_STL="c++_shared" \
     -DCMAKE_TOOLCHAIN_FILE=/opt/ndk/build/cmake/android.toolchain.cmake \
     -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH};/usr/qt-for-android/${ARCH}" \
-    -DQT_HOST_PATH="/usr/host_qt" \
     -DCMAKE_CROSSCOMPILING_EMULATOR="${CMAKE_CROSSCOMPILING_EMULATOR}" \
-    -DCMAKE_UNITY_BUILD=ON \
-    -DBUILD_SHARED_LIBS=ON \
-    -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-    -DOPENTXS_BUILD_TESTS=OFF \
-    -DOT_WITH_QT="${OT_QT}" \
-    -DOT_WITH_QML="${OT_QT}" \
-    -DOT_OPENSSL_FLAVOR_LIBRESSL=ON \
     -DCMAKE_INSTALL_PREFIX="${OUT}" \
     -DCMAKE_SHARED_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
     -DCMAKE_EXE_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
-    "${SRC}"
-/usr/local/bin/cmake --build .
-rm -rf "${OUT}/"*
-/usr/local/bin/cmake --install .
+    -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
+    -DOT_OPENSSL_FLAVOR_LIBRESSL=ON \
+    -DQT_HOST_PATH="/usr/host_qt" \
+    -DHAVE_GLESv2=ON \
+    -DBUILD_SHARED_LIBS=ON \
+    -DOT_PCH=ON \
+    -DCMAKE_UNITY_BUILD=ON \
+    -DOPENTXS_PEDANTIC_BUILD=ON \
+    -DOPENTXS_BUILD_TESTS=OFF \
+    -DOT_WITH_QT=ON \
+    -DOT_WITH_QML=ON
+/usr/local/bin/cmake \
+    --build "${WORK}" \
+    -- -k 0
+/usr/local/bin/cmake \
+    --install "${WORK}"
 cp -a "/usr/android/${ARCH}/include/google" "${OUT}/include/"
