@@ -9,6 +9,7 @@ RUN dnf install -y \
     clang-analyzer \
     cmake \
     cppcheck \
+    findutils \
     gcc \
     gcc-c++ \
     git \
@@ -24,12 +25,15 @@ RUN dnf install -y \
     msgpack-devel \
     ninja-build \
     openssl-devel \
+    pip \
     protobuf-compiler \
     protobuf-lite-devel \
     sqlite-devel \
     which \
     zeromq-devel \
     && rm -rf /var/cache/dnf
+RUN pip install cmakelang
+RUN git config --global --add safe.directory /home/src
 
 FROM fedora-download AS gtest-download
 ARG GTEST_VERSION="release-1.11.0"
@@ -176,6 +180,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     && rm -rf /tmp/build
 
 FROM fedora-build AS opentxs-fedora-ci
+RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-gtest /usr/local /usr
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr/local
@@ -183,7 +188,8 @@ COPY --from=fedora-cmake /usr/local /usr/local
 COPY --from=fedora-qt /usr/local /usr/local
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
+COPY ./check-formatting.sh /usr/bin
 RUN chmod a+x /usr/bin/build-opentxs.sh
-RUN git config --global --add safe.directory /home/src
+RUN chmod a+x /usr/bin/check-formatting.sh
 ENTRYPOINT [ "/usr/bin/build-opentxs.sh" ]
 CMD []

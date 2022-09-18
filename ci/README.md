@@ -24,9 +24,20 @@ The second argument specifies a preset from CMakePresets.json
 docker run \
     --read-only \
     --tmpfs /tmp/build:rw,nosuid,size=2g \
-    --mount type=bind,src=/path/to/opentxs,dst=/home/src \
+    --mount readonly,type=bind,src=/path/to/opentxs,dst=/home/src \
     --mount type=bind,src=/path/to/build/directory,dst=/home/output \
     -it opentransactions/ci:latest \
     gcc \
     full
+```
+
+### Check formatting
+
+```
+docker run \
+    --read-only \
+    --tmpfs /tmp/build:rw,nosuid,size=2g \
+    --mount type=bind,src=/path/to/opentxs,dst=/home/src \
+    --entrypoint /usr/bin/check-formatting.sh \
+    -it opentransactions/ci:latest
 ```
