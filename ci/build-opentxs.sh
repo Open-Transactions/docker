@@ -1,7 +1,7 @@
 #!/bin/bash
 
-C_COMPILER="${1}"
-CXX_COMPILER="${2}"
+COMPILER="${1}"
+PRESET="${2}"
 SRC="/home/src"
 WORK="/home/output"
 
@@ -15,27 +15,31 @@ if [ ! -d "${WORK}" ]; then
     exit 1
 fi
 
-if [ "${C_COMPILER}" == "" ]; then
-    echo "C compiler not set"
+if [ "${COMPILER}" == "" ]; then
+    echo "Compiler. Allowed values: gcc clang"
     exit 1
-fi
-
-if [ "${CXX_COMPILER}" == "" ]; then
-    echo "C++ compiler not set"
+elif [ "${COMPILER}" == "gcc" ]; then
+    export CMAKE_C_COMPILER="/usr/bin/gcc"
+    export CMAKE_CXX_COMPILER="/usr/bin/g++"
+elif [ "${COMPILER}" == "clang" ]; then
+    export CMAKE_C_COMPILER="/usr/bin/clang"
+    export CMAKE_CXX_COMPILER="/usr/bin/clang++"
+else
+    echo "Unknown compiler: ${COMPILER}"
+    echo "Allowed values: gcc clang"
     exit 1
 fi
 
 set -e
-source /var/lib/opentxs-config.sh "${3}"
+
 rm -rf "${WORK}/"*
-cd "${WORK}"
 /usr/local/bin/cmake \
-    -GNinja \
-    -DCMAKE_C_COMPILER="${C_COMPILER}" \
-    -DCMAKE_CXX_COMPILER="${CXX_COMPILER}" \
-    -DCMAKE_BUILD_TYPE=Debug \
+    -S "${SRC}" \
+    -B "${WORK}" \
+    --preset "${PRESET}"\
     -DBUILD_SHARED_LIBS=ON \
-    -DOT_LUCRE_DEBUG=OFF \
-    ${OT_OPTIONS} \
-    "${SRC}"
-/usr/local/bin/cmake --build . -- -k 0
+    -DCMAKE_C_COMPILER="${CMAKE_C_COMPILER}" \
+    -DCMAKE_CXX_COMPILER="${CMAKE_CXX_COMPILER}"
+/usr/local/bin/cmake \
+    --build "${WORK}" \
+    -- -k 0

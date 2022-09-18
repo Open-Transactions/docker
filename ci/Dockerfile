@@ -183,12 +183,7 @@ COPY --from=fedora-cmake /usr/local /usr/local
 COPY --from=fedora-qt /usr/local /usr/local
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
-COPY ./build-opentxs-clang /usr/bin
-COPY ./build-opentxs-gcc /usr/bin
-COPY ./test-opentxs /usr/bin
-COPY ./opentxs-config.sh /var/lib
 RUN chmod a+x /usr/bin/build-opentxs.sh
-RUN chmod a+x /usr/bin/build-opentxs-clang
-RUN chmod a+x /usr/bin/build-opentxs-gcc
-RUN chmod a+x /usr/bin/test-opentxs
 RUN git config --global --add safe.directory /home/src
+ENTRYPOINT [ "/usr/bin/build-opentxs.sh" ]
+CMD []
