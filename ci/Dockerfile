@@ -56,7 +56,7 @@ RUN mkdir -p /usr/src \
     && mv "/usr/src/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
 FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION="3.20.0"
+ARG CMAKE_VERSION="3.21.7"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
