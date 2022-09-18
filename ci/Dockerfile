@@ -189,7 +189,9 @@ COPY --from=fedora-qt /usr/local /usr/local
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./check-formatting.sh /usr/bin
+COPY ./run-iwyu.sh /usr/bin
 RUN chmod a+x /usr/bin/build-opentxs.sh
 RUN chmod a+x /usr/bin/check-formatting.sh
+RUN chmod a+x /usr/bin/run-iwyu.sh
 ENTRYPOINT [ "/usr/bin/build-opentxs.sh" ]
 CMD []
