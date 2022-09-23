@@ -1,4 +1,4 @@
-FROM fedora:36 AS fedora-base
+FROM fedora:37 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
@@ -36,8 +36,8 @@ RUN pip install cmakelang
 RUN git config --global --add safe.directory /home/src
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="abd5d2bd6320867d3605227a7f798a4e08fef896"
-RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
+ARG IWYU_COMMIT="846125a1d36a81b5d711394066e36a8e3a5eb3d8"
+RUN mkdir -p /usr/src && git clone --recursive "https://github.com/kimgr/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-build AS fedora-iwyu
 RUN dnf install -y clang-devel llvm-devel && rm -rf /var/cache/dnf
