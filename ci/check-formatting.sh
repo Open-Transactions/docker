@@ -17,6 +17,7 @@ find "${SRC}" \
     -not -path '*/deps/SHA1/*' \
     -not -path '*/deps/bech32/*' \
     -not -path '*/deps/cs_libguarded/*' \
+    -not -path '*/deps/frozen/*' \
     -not -path '*/deps/irrxml/*' \
     -not -path '*/deps/lucre/*' \
     -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
@@ -36,6 +37,8 @@ find "${SRC}" \
     -not -path '*/deps/SHA1/*' \
     -not -path '*/deps/bech32/*' \
     -not -path '*/deps/cs_libguarded/*' \
+    -not -path '*/deps/frozen/*' \
+    -not -path '*/deps/irrxml/*' \
     -not -path '*/deps/lucre/*' \
     -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
     -not -path '*/deps/robin-hood/*' \
@@ -54,6 +57,7 @@ find "${SRC}" \
     -not -path '*/deps/SHA1/*' \
     -not -path '*/deps/bech32/*' \
     -not -path '*/deps/cs_libguarded/*' \
+    -not -path '*/deps/frozen/*' \
     -not -path '*/deps/lucre/*' \
     -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
     -not -path '*/deps/robin-hood/*' \
@@ -65,13 +69,15 @@ find "${SRC}" \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
     -exec cmake-format -i {} +
 find "${SRC}" \
-    -name "CMakeLists.txt" \
+    -name "*.*pp" \
     -not -path '*/.git/*' \
     -not -path '*/cmake/*' \
     -not -path '*/deps/ChaiScript/*' \
     -not -path '*/deps/SHA1/*' \
     -not -path '*/deps/bech32/*' \
     -not -path '*/deps/cs_libguarded/*' \
+    -not -path '*/deps/frozen/*' \
+    -not -path '*/deps/irrxml/*' \
     -not -path '*/deps/lucre/*' \
     -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
     -not -path '*/deps/robin-hood/*' \
