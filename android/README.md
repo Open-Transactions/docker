@@ -10,7 +10,7 @@ This image creates an Android NDK development environment and compiles all opent
 * Boost (1.80)
 * Googletest (1.10.0)
 * LMDB (8d0cbbc)
-* LibreSSL (3.1.3)
+* OpenSSL (3.0.5)
 * Libsodium (1.0.18)
 * Protocol Buffers (3.19.4)
 * Qt (6.3.2)
@@ -29,19 +29,20 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 #### Optional arguments for customizing the image contents
 
 * ANDROID_BUILD_TOOLS
-* ANDROID_CLANG
 * ANDROID_LEVEL
+* ANDROID_LEVEL_TOOLCHAIN
 * ANDROID_TOOLS
 * BOOST
 * CMAKE_BUILD_TYPE
+* CMAKE_VERSION
+* GTEST
 * JOBS
-* LIBRESSL
 * LMDB
 * NDK
+* OPENSSL_VER
 * PROTOBUF
 * QT_BRANCH
 * QT_VERSION
-* SECP256K1
 * SODIUM
 * ZMQ
 

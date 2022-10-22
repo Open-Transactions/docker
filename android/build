@@ -20,21 +20,13 @@ if [ "${ARCH}" == "" ]; then
     echo "Target architecture not set. Allowed values: arm64 arm x64 x86"
     exit 1
 elif [ "${ARCH}" == "arm64" ]; then
-    export ANDROID_ABI="arm64-v8a"
-    export CMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-aarch64-static"
-    export CUSTOM_LDFLAGS="-Wl,-lGLESv2"
+    :
 elif [ "${ARCH}" == "arm" ]; then
-    export ANDROID_ABI="armeabi-v7a"
-    export CMAKE_CROSSCOMPILING_EMULATOR="/usr/bin/qemu-arm-static"
-    export CUSTOM_LDFLAGS="-Wl,-lGLESv2"
+    :
 elif [ "${ARCH}" == "x64" ]; then
-    export ANDROID_ABI="x86_64"
-    export CMAKE_CROSSCOMPILING_EMULATOR=""
-    export CUSTOM_LDFLAGS="-Wl,-lGLESv2"
+    :
 elif [ "${ARCH}" == "x86" ]; then
-    export ANDROID_ABI="x86"
-    export CMAKE_CROSSCOMPILING_EMULATOR=""
-    export CUSTOM_LDFLAGS="-Wl,-lGLESv2"
+    :
 else
     echo "Unknown architecture: ${ARCH}"
     echo "Allowed values: arm64 arm x64 x86"
@@ -47,30 +39,10 @@ rm -rf "${OUT}/"*
 /usr/local/bin/cmake \
     -S "${SRC}" \
     -B "${WORK}" \
-    -GNinja \
-    -DANDROID_ABI="${ANDROID_ABI}" \
-    -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
-    -DANDROID_STL="c++_shared" \
-    -DCMAKE_TOOLCHAIN_FILE=/opt/ndk/build/cmake/android.toolchain.cmake \
-    -DCMAKE_FIND_ROOT_PATH="/usr/android/${ARCH};/usr/qt-for-android/${ARCH}" \
-    -DCMAKE_CROSSCOMPILING_EMULATOR="${CMAKE_CROSSCOMPILING_EMULATOR}" \
-    -DCMAKE_INSTALL_PREFIX="${OUT}" \
-    -DCMAKE_SHARED_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
-    -DCMAKE_EXE_LINKER_FLAGS="${CUSTOM_LDFLAGS}" \
-    -DProtobuf_PROTOC_EXECUTABLE=/usr/bin/protoc \
-    -DOT_OPENSSL_FLAVOR_LIBRESSL=ON \
-    -DQT_HOST_PATH="/usr/host_qt" \
-    -DHAVE_GLESv2=ON \
-    -DBUILD_SHARED_LIBS=ON \
-    -DOT_PCH=ON \
-    -DCMAKE_UNITY_BUILD=ON \
-    -DOPENTXS_PEDANTIC_BUILD=ON \
-    -DOPENTXS_BUILD_TESTS=OFF \
-    -DOT_WITH_QT=ON \
-    -DOT_WITH_QML=ON
+    --preset "android-${ARCH}" \
+    -DANDROID_PLATFORM="${ANDROID_PLATFORM}"
 /usr/local/bin/cmake \
     --build "${WORK}" \
     -- -k 0
 /usr/local/bin/cmake \
     --install "${WORK}"
-cp -a "/usr/android/${ARCH}/include/google" "${OUT}/include/"

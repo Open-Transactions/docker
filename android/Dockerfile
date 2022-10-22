@@ -9,7 +9,7 @@ ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
 
 FROM fedora:36 AS run
-RUN dnf install -y git ninja-build openssl1.1 pcre2-devel && rm -rf /var/cache/dnf
+RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
 
 FROM run AS tools
 RUN dnf install -y \
@@ -22,8 +22,8 @@ RUN dnf install -y \
     java-devel \
     libtool \
     make \
-    openssl1.1-devel \
     patch \
+    perl-core \
     python \
     unzip \
     wget \
@@ -49,6 +49,25 @@ RUN mkdir -p /opt/android && \
     yes | /opt/android/cmdline-tools/bin/sdkmanager --sdk_root=/opt/android-sdk-linux "build-tools;${ANDROID_BUILD_TOOLS}" && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
 
+FROM tools AS openssl_download
+ARG OPENSSL_VER=3.0.5
+RUN mkdir -p /usr/src \
+    && cd /usr/src \
+    && wget "https://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz" \
+    && tar -xf "openssl-${OPENSSL_VER}.tar.gz" \
+    && rm "openssl-${OPENSSL_VER}.tar.gz" \
+    && mv "openssl-${OPENSSL_VER}" openssl
+
+FROM tools AS openssl_host
+ARG JOBS
+COPY --from=openssl_download /usr/src/openssl /usr/src/openssl
+RUN mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && /usr/src/openssl/Configure --prefix=/usr/local \
+    && make -j${JOBS} build_sw \
+    && make install_sw \
+    && rm -rf /tmp/build
+
 FROM tools AS cmake-download
 ARG CMAKE_VERSION="3.24.2"
 RUN mkdir -p /usr/src \
@@ -60,6 +79,7 @@ RUN mkdir -p /usr/src \
 
 FROM tools AS cmake
 RUN dnf install -y cmake && rm -rf /var/cache/dnf
+COPY --from=openssl_host /usr/local /usr/local
 COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
@@ -70,8 +90,9 @@ RUN mkdir -p /tmp/build \
 FROM tools AS build_base
 ARG NDK
 COPY --from=android /opt/android-sdk-linux /opt/android-sdk-linux
-COPY --from=cmake /usr/local /usr/local
 RUN ln -s "/opt/android-sdk-linux/ndk/${NDK}" /opt/ndk
+COPY --from=cmake /usr/local /usr/local
+COPY --from=openssl_host /usr/local /usr/local
 
 FROM tools AS boost_download
 ARG BOOST=4067aed71278e292d1b78d8a13431f01f80012f1
@@ -329,85 +350,37 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/protobuf
 
-FROM tools AS libressl_download
-ARG LIBRESSL=aa6440a9b086faa9ee555046c2c006534e01eaf7
-RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/libressl-portable/portable/archive/${LIBRESSL}.zip" \
-    && unzip "${LIBRESSL}.zip" && rm "${LIBRESSL}.zip" && mv "portable-${LIBRESSL}" libressl
-
-FROM build_base AS libressl
-COPY --from=libressl_download /usr/src/libressl /usr/src/libressl
+FROM build_base AS openssl
+COPY --from=openssl_download /usr/src/openssl /usr/src/openssl
+ARG JOBS
 ARG ANDROID_LEVEL
-ARG CMAKE_BUILD_TYPE
-RUN cd /usr/src/libressl && ./autogen.sh \
+ENV ANDROID_NDK_ROOT=/opt/ndk
+RUN export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=arm64-v8a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DLIBRESSL_APPS=OFF \
-        -DLIBRESSL_TESTS=OFF \
-        -DENABLE_ASM=OFF \
-        /usr/src/libressl \
-    && ninja install \
+    && /usr/src/openssl/Configure --prefix=/usr/android/arm64 android-arm64 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
+    && make -j${JOBS} build_sw \
+    && make install_sw \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=armeabi-v7a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=ON \
-        -DLIBRESSL_APPS=OFF \
-        -DLIBRESSL_TESTS=OFF \
-        -DENABLE_ASM=OFF \
-        /usr/src/libressl \
-    && ninja install \
+    && /usr/src/openssl/Configure --prefix=/usr/android/arm android-arm "-D__ANDROID_API__=${ANDROID_LEVEL}" \
+    && make -j${JOBS} build_sw \
+    && make install_sw \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86_64 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DLIBRESSL_APPS=OFF \
-        -DLIBRESSL_TESTS=OFF \
-        -DENABLE_ASM=OFF \
-        /usr/src/libressl \
-    && ninja install \
+    && /usr/src/openssl/Configure --prefix=/usr/android/x64 android-x86_64 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
+    && make -j${JOBS} build_sw \
+    && make install_sw \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DLIBRESSL_APPS=OFF \
-        -DLIBRESSL_TESTS=OFF \
-        -DENABLE_ASM=OFF \
-        /usr/src/libressl \
-    && ninja install \
+    && /usr/src/openssl/Configure --prefix=/usr/android/x86 android-x86 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
+    && make -j${JOBS} build_sw \
+    && make install_sw \
     && rm -rf /tmp/build \
-    && rm -rf /usr/src/libressl
+    && rm -rf /usr/src/openssl
 
 FROM tools AS zeromq_download
 ARG ZMQ=4097855ddaaa65ed7b5e8cb86d143842a594eebd
@@ -677,7 +650,6 @@ RUN dnf install -y \
     mesa-libOSMesa-devel \
     nodejs \
     nss-devel \
-    openssl1.1-devel \
     opus-devel \
     pcre2-devel \
     perl-English \
@@ -799,7 +771,7 @@ COPY --from=sodium /usr/android /usr/android
 COPY --from=lmdb /usr/android /usr/android
 COPY --from=protobuf /usr/android /usr/android
 COPY --from=protobuf /usr/local/protobuf /usr
-COPY --from=libressl /usr/android /usr/android
+COPY --from=openssl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
