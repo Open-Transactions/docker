@@ -25,6 +25,7 @@ RUN dnf install -y \
     qt6-qtbase-devel \
     qt6-qtdeclarative-devel \
     sqlite-devel \
+    tbb-devel \
     which \
     zeromq-devel \
     && rm -rf /var/cache/dnf
