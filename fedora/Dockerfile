@@ -1,58 +1,54 @@
-FROM fedora:35 AS base
+FROM fedora:37 AS base
 
 FROM base AS git
 RUN dnf install -y git
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="1.138.0"
+ARG OPENTXS_COMMIT="1.141.0"
 RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM git AS build
 RUN dnf install -y \
+    boost-devel \
+    boost-json \
+    cmake \
     gcc \
     gcc-c++ \
-    cmake \
-    ninja-build \
-    protobuf-compiler \
-    lmdb-devel \
-    protobuf-lite-devel \
     libsodium-devel \
+    lmdb-devel \
+    ninja-build \
     openssl-devel \
-    zeromq-devel \
-    boost-devel \
-    boost-json
+    protobuf-compiler \
+    protobuf-lite-devel \
+    tbb-devel \
+    zeromq-devel
 
 FROM build AS compile
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
-ARG TEST_JOBS=2
-ARG UNITY_BATCH=0
-RUN mkdir -p /tmp/opentxs && cd /tmp/opentxs \
-    && cmake \
-        -GNinja \
-        -DCMAKE_C_FLAGS="-O2" \
-        -DCMAKE_CXX_FLAGS="-O2" \
-        -DCMAKE_BUILD_TYPE=Release \
+RUN cmake \
+        -S /usr/src/opentxs \
+        -B /tmp/opentxs \
+        --preset prod \
         -DBUILD_SHARED_LIBS=ON \
-        -DOPENTXS_BUILD_TESTS=OFF \
-        -DOT_CRYPTO_SUPPORTED_KEY_RSA=ON \
-        -DOT_CASH_USING_LUCRE=ON \
-        -DCMAKE_UNITY_BUILD=ON \
-        -DCMAKE_UNITY_BUILD_BATCH_SIZE="${UNITY_BATCH}" \
-        /usr/src/opentxs \
-    && cmake --build . \
-    && cmake --install . \
-    && rm -rf /tmp/opentxs*
+        -DCMAKE_C_FLAGS="-O2" \
+        -DCMAKE_CXX_FLAGS="-O2 -Wno-error=null-dereference -Wno-error=stringop-overflow=" \
+        -DOT_STORAGE_SQLITE=OFF \
+        -DOT_WITH_QT=OFF \
+    && cmake --build /tmp/opentxs \
+    && cmake --install /tmp/opentxs \
+    && rm -rf /tmp/opentxs
 
 FROM base AS run
 RUN dnf install -y \
-    lmdb \
-    protobuf-lite \
-    libsodium \
-    openssl-libs \
-    zeromq \
     boost \
     boost-json \
+    libsodium \
+    lmdb \
+    openssl-libs \
+    protobuf-lite \
+    tbb \
+    zeromq \
     && rm -rf /var/cache/dnf
 
 FROM run AS opentxs
