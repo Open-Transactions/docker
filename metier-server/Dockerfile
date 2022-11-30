@@ -1,26 +1,27 @@
-FROM fedora:35 AS base
+FROM fedora:37 AS base
 
 FROM base AS git
 RUN dnf install -y git
 
 FROM git AS download
 ARG METIER_REPO="https://github.com/Open-Transactions/metier-server"
-ARG METIER_COMMIT="22.3"
+ARG METIER_COMMIT="22.5"
 RUN mkdir -p /usr/src && git clone --recursive "${METIER_REPO}" /usr/src/metier-server && cd /usr/src/metier-server && git reset --hard "${METIER_COMMIT}"
 
-FROM opentransactions/fedora-devel:1.138.0 AS compile
+FROM opentransactions/fedora-devel:1.141.0 AS compile
 RUN dnf install -y \
-    gcc-c++ \
+    boost-devel \
+    boost-devel \
     cmake \
-    ninja-build \
-    boost-devel \
-    protobuf-compiler \
-    lmdb-devel \
-    protobuf-lite-devel \
+    gcc-c++ \
     libsodium-devel \
+    lmdb-devel \
+    ninja-build \
     openssl-devel \
+    protobuf-compiler \
+    protobuf-lite-devel \
+    tbb-devel \
     zeromq-devel \
-    boost-devel \
     zlib-devel
 
 COPY --from=download /usr/src/metier-server /usr/src/metier-server
@@ -38,7 +39,7 @@ RUN mkdir -p /tmp/metier-server && cd /tmp/metier-server \
     && cmake --install . \
     && rm -rf /tmp/metier-server*
 
-FROM opentransactions/fedora:1.138.0 AS run
+FROM opentransactions/fedora:1.141.0 AS run
 COPY --from=compile /usr/local/bin/metier-server /usr/bin/metier-server
 ENTRYPOINT [ "/usr/bin/metier-server", "--data_dir=/metier" ]
 CMD []
