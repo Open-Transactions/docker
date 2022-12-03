@@ -25,6 +25,7 @@ find "${SRC}" \
     -not -path '*/deps/secp256k1/*' \
     -not -path '*/deps/simpleini/*' \
     -not -path '*/deps/smhasher/*' \
+    -not -path '*/deps/unordered_dense/*' \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
@@ -45,6 +46,7 @@ find "${SRC}" \
     -not -path '*/deps/secp256k1/*' \
     -not -path '*/deps/simpleini/*' \
     -not -path '*/deps/smhasher/*' \
+    -not -path '*/deps/unordered_dense/*' \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
@@ -64,6 +66,7 @@ find "${SRC}" \
     -not -path '*/deps/secp256k1/*' \
     -not -path '*/deps/simpleini/*' \
     -not -path '*/deps/smhasher/*' \
+    -not -path '*/deps/unordered_dense/*' \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
@@ -84,6 +87,7 @@ find "${SRC}" \
     -not -path '*/deps/secp256k1/*' \
     -not -path '*/deps/simpleini/*' \
     -not -path '*/deps/smhasher/*' \
+    -not -path '*/deps/unordered_dense/*' \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
