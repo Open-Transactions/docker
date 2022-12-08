@@ -5,7 +5,7 @@ RUN dnf install -y git
 
 FROM git AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="1.142.0"
+ARG OPENTXS_COMMIT="1.142.1"
 RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM git AS build
@@ -32,7 +32,7 @@ RUN cmake \
         --preset prod \
         -DBUILD_SHARED_LIBS=ON \
         -DCMAKE_C_FLAGS="-O2" \
-        -DCMAKE_CXX_FLAGS="-O2 -Wno-error=null-dereference -Wno-error=stringop-overflow=" \
+        -DCMAKE_CXX_FLAGS="-O2" \
         -DOT_STORAGE_SQLITE=OFF \
         -DOT_WITH_QT=OFF \
     && cmake --build /tmp/opentxs \
