@@ -39,7 +39,7 @@ RUN mkdir -p /tmp/metier-server && cd /tmp/metier-server \
     && cmake --install . \
     && rm -rf /tmp/metier-server*
 
-FROM opentransactions/fedora:1.142.0 AS run
+FROM opentransactions/fedora:1.142.1 AS run
 COPY --from=compile /usr/local/bin/metier-server /usr/bin/metier-server
 ENTRYPOINT [ "/usr/bin/metier-server", "--data_dir=/metier" ]
 CMD []
