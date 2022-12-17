@@ -31,7 +31,7 @@ rm -rf "${WORK}/"*
     -- -k 0 \
     | tee "${WORK}/iwyu.txt"
 cd "${SRC}"
-/usr/bin/fix_includes.py --blank_lines --nocomments --safe_headers --reorder < "${WORK}/iwyu.txt"
+/usr/bin/fix_includes.py --blank_lines --nocomments --nosafe_headers --reorder < "${WORK}/iwyu.txt"
 
 output=$(/usr/bin/git --no-pager diff)
 
