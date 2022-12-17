@@ -10,6 +10,7 @@ This image creates an Android NDK development environment and compiles all opent
 * Boost (1.80)
 * Googletest (1.10.0)
 * LMDB (8d0cbbc)
+* OneTBB (66c6d8e)
 * OpenSSL (3.0.5)
 * Libsodium (1.0.18)
 * Protocol Buffers (3.19.4)
@@ -44,6 +45,7 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 * QT_BRANCH
 * QT_VERSION
 * SODIUM
+* TBB
 * ZMQ
 
 ### Compiling opentxs

@@ -531,7 +531,6 @@ FROM build_base as gtest
 COPY --from=gtest_download /usr/src/googletest /usr/src/googletest
 ARG ANDROID_LEVEL
 ARG CMAKE_BUILD_TYPE
-ARG JOBS
 RUN mkdir -p /tmp/build \
     && cd /tmp/build \
     && /usr/local/bin/cmake \
@@ -546,7 +545,6 @@ RUN mkdir -p /tmp/build \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
     && ninja install \
-    && ctest --jobs $JOBS \
     && rm -rf /tmp/build \
     && mkdir -p /tmp/build \
     && cd /tmp/build \
@@ -594,6 +592,81 @@ RUN mkdir -p /tmp/build \
     && ninja install \
     && rm -rf /tmp/build \
     && rm -rf /usr/src/googletest
+
+FROM tools AS tbb_download
+ARG TBB=66c6d8e3305363642d6284410881fda82f5c9c96
+RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/oneapi-src/oneTBB/archive/${TBB}.zip" \
+    && unzip "${TBB}.zip" && rm "${TBB}.zip" && mv "oneTBB-${TBB}" tbb
+
+FROM build_base as tbb
+COPY --from=tbb_download /usr/src/tbb /usr/src/tbb
+ARG ANDROID_LEVEL
+ARG CMAKE_BUILD_TYPE
+RUN mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && /usr/local/bin/cmake \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+        -DANDROID_ABI=arm64-v8a \
+        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
+        -DANDROID_STL="c++_shared" \
+        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
+        -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
+        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
+        -DBUILD_SHARED_LIBS=ON \
+        -DTBB_TEST=OFF \
+        /usr/src/tbb \
+    && ninja install \
+    && rm -rf /tmp/build \
+    && mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && /usr/local/bin/cmake \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+        -DANDROID_ABI=armeabi-v7a \
+        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
+        -DANDROID_STL="c++_shared" \
+        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
+        -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
+        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
+        -DBUILD_SHARED_LIBS=ON \
+        -DTBB_TEST=OFF \
+        /usr/src/tbb \
+    && ninja install \
+    && rm -rf /tmp/build \
+    && mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && /usr/local/bin/cmake \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+        -DANDROID_ABI=x86_64 \
+        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
+        -DANDROID_STL="c++_shared" \
+        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
+        -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
+        -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
+        -DBUILD_SHARED_LIBS=ON \
+        -DTBB_TEST=OFF \
+        /usr/src/tbb \
+    && ninja install \
+    && rm -rf /tmp/build \
+    && mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && /usr/local/bin/cmake \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
+        -DANDROID_ABI=x86 \
+        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
+        -DANDROID_STL="c++_shared" \
+        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
+        -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
+        -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
+        -DBUILD_SHARED_LIBS=ON \
+        -DTBB_TEST=OFF \
+        /usr/src/tbb \
+    && ninja install \
+    && rm -rf /tmp/build \
+    && rm -rf /usr/src/tbb
 
 FROM tools AS qt_download
 ARG QT_BRANCH=6.3
@@ -774,6 +847,7 @@ COPY --from=protobuf /usr/local/protobuf /usr
 COPY --from=openssl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
+COPY --from=tbb /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
 RUN /usr/bin/git config --system --add safe.directory '*'
