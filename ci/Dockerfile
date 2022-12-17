@@ -36,8 +36,8 @@ RUN pip install cmakelang
 RUN git config --global --add safe.directory /home/src
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"
-RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
+ARG IWYU_COMMIT="846125a1d36a81b5d711394066e36a8e3a5eb3d8"
+RUN mkdir -p /usr/src && git clone --recursive "https://github.com/kimgr/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-build AS fedora-iwyu
 RUN dnf install -y clang-devel llvm-devel && rm -rf /var/cache/dnf
