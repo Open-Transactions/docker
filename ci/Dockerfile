@@ -1,9 +1,8 @@
-ARG BASE_FEDORA_VERSION="37"
+ARG BASE_FEDORA_VERSION="38"
 ARG BOOST_MAJOR="1"
 ARG BOOST_MINOR="82"
 ARG BOOST_PATCH="0"
-ARG CMAKE_VERSION="3.26.3"
-ARG IWYU_COMMIT_HASH="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"
+ARG IWYU_COMMIT_HASH="35fed15e53d92c8c540f0c00ac10077043126c4d"
 ARG OTCOMMON_COMMIT_HASH="a8cb2a10e7eff4fdece28feea681541b70728053"
 ARG OTCOMMON_VERSION="2.0.0-0-ga8cb2a1"
 
@@ -62,13 +61,6 @@ RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && mkdir -p /tmp/download \
     && mv "/tmp/download/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
-FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION
-RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
-    && wget -O /tmp/download/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
-    && tar -xf cmake.tar.gz \
-    && mv "cmake-${CMAKE_VERSION}" /usr/src/cmake
-
 FROM fedora-download AS otcommon-download
 ARG OTCOMMON_COMMIT_HASH
 RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
@@ -94,17 +86,9 @@ RUN --mount=type=tmpfs,target=/tmp/build rsync -a /usr/src/boost/ /tmp/build/ \
     && ./b2 \
     && ./b2 install
 
-FROM fedora-build AS fedora-cmake
-COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && cmake -GNinja /usr/src/cmake \
-    && cmake --build . \
-    && cmake --install .
-
 FROM fedora-build AS fedora-otcommon
 ARG OTCOMMON_VERSION
 COPY --from=otcommon-download /usr/src/otcommon /usr/src/otcommon
-COPY --from=fedora-cmake /usr/local /usr
 RUN ldconfig
 RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake \
@@ -117,7 +101,6 @@ FROM fedora-build AS opentxs-fedora-ci
 RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr
-COPY --from=fedora-cmake /usr/local /usr
 COPY --from=fedora-otcommon /usr/local /usr
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
