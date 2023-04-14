@@ -29,6 +29,7 @@ find "${SRC}" \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
+    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
     -exec clang-format -i {} +
 find "${SRC}" \
     -name "*.*json" \
@@ -50,6 +51,7 @@ find "${SRC}" \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
+    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
     -exec clang-format -i {} +
 find "${SRC}" \
     -name "CMakeLists.txt" \
@@ -70,6 +72,7 @@ find "${SRC}" \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
+    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
     -exec cmake-format -i {} +
 find "${SRC}" \
     -name "*.*pp" \
@@ -91,6 +94,7 @@ find "${SRC}" \
     -not -path '*/deps/vcpkg/*' \
     -not -path '*/deps/vcpkg_installed/*' \
     -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
+    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
     -exec /usr/bin/fix_includes.py --blank_lines --nocomments --safe_headers --reorder --sort_only {} +
 
 cd "${SRC}"
