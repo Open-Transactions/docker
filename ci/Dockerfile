@@ -1,4 +1,4 @@
-FROM fedora:37 AS fedora-base
+FROM fedora:38 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -40,7 +40,7 @@ RUN pip install cmakelang
 RUN git config --global --add safe.directory /home/src
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"
+ARG IWYU_COMMIT="35fed15e53d92c8c540f0c00ac10077043126c4d"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-download AS boost-download
@@ -52,13 +52,6 @@ RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && tar -xf /tmp/download/boost.tar.bz2 -C /tmp/download \
     && mkdir -p /tmp/download \
     && mv "/tmp/download/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
-
-FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION="3.26.3"
-RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
-    && wget -O /tmp/download/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
-    && tar -xf cmake.tar.gz \
-    && mv "cmake-${CMAKE_VERSION}" /usr/src/cmake
 
 FROM fedora-build AS fedora-iwyu
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -78,18 +71,10 @@ RUN --mount=type=tmpfs,target=/tmp/build rsync -a /usr/src/boost/ /tmp/build/ \
     && ./b2 \
     && ./b2 install
 
-FROM fedora-build AS fedora-cmake
-COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && cmake -GNinja /usr/src/cmake \
-    && cmake --build . \
-    && cmake --install .
-
 FROM fedora-build AS opentxs-fedora-ci
 RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr
-COPY --from=fedora-cmake /usr/local /usr
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./check-formatting.sh /usr/bin
