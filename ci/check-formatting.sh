@@ -3,99 +3,46 @@
 set -e
 
 SRC="/home/src"
+EXCLUDE_FILE="${SRC}/.format-exclude"
 
 if [ ! -d "${SRC}" ]; then
-    echo "Source tree missing. Mount opentxs source directory at ${SRC}"
+    echo "Source tree missing. Mount source directory at ${SRC}"
     exit 1
 fi
 
-find "${SRC}" \
-    -name "*.*pp" \
-    -not -path '*/.git/*' \
-    -not -path '*/cmake/*' \
-    -not -path '*/deps/ChaiScript/*' \
-    -not -path '*/deps/SHA1/*' \
-    -not -path '*/deps/bech32/*' \
-    -not -path '*/deps/cs_libguarded/*' \
-    -not -path '*/deps/frozen/*' \
-    -not -path '*/deps/irrxml/*' \
-    -not -path '*/deps/lucre/*' \
-    -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
-    -not -path '*/deps/robin-hood/*' \
-    -not -path '*/deps/secp256k1/*' \
-    -not -path '*/deps/simpleini/*' \
-    -not -path '*/deps/smhasher/*' \
-    -not -path '*/deps/unordered_dense/*' \
-    -not -path '*/deps/vcpkg/*' \
-    -not -path '*/deps/vcpkg_installed/*' \
-    -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
-    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
-    -exec clang-format -i {} +
-find "${SRC}" \
-    -name "*.*json" \
-    -not -path '*/.git/*' \
-    -not -path '*/cmake/*' \
-    -not -path '*/deps/ChaiScript/*' \
-    -not -path '*/deps/SHA1/*' \
-    -not -path '*/deps/bech32/*' \
-    -not -path '*/deps/cs_libguarded/*' \
-    -not -path '*/deps/frozen/*' \
-    -not -path '*/deps/irrxml/*' \
-    -not -path '*/deps/lucre/*' \
-    -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
-    -not -path '*/deps/robin-hood/*' \
-    -not -path '*/deps/secp256k1/*' \
-    -not -path '*/deps/simpleini/*' \
-    -not -path '*/deps/smhasher/*' \
-    -not -path '*/deps/unordered_dense/*' \
-    -not -path '*/deps/vcpkg/*' \
-    -not -path '*/deps/vcpkg_installed/*' \
-    -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
-    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
-    -exec clang-format -i {} +
-find "${SRC}" \
-    -name "CMakeLists.txt" \
-    -not -path '*/.git/*' \
-    -not -path '*/cmake/*' \
-    -not -path '*/deps/ChaiScript/*' \
-    -not -path '*/deps/SHA1/*' \
-    -not -path '*/deps/bech32/*' \
-    -not -path '*/deps/cs_libguarded/*' \
-    -not -path '*/deps/frozen/*' \
-    -not -path '*/deps/lucre/*' \
-    -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
-    -not -path '*/deps/robin-hood/*' \
-    -not -path '*/deps/secp256k1/*' \
-    -not -path '*/deps/simpleini/*' \
-    -not -path '*/deps/smhasher/*' \
-    -not -path '*/deps/unordered_dense/*' \
-    -not -path '*/deps/vcpkg/*' \
-    -not -path '*/deps/vcpkg_installed/*' \
-    -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
-    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
-    -exec cmake-format -i {} +
-find "${SRC}" \
-    -name "*.*pp" \
-    -not -path '*/.git/*' \
-    -not -path '*/cmake/*' \
-    -not -path '*/deps/ChaiScript/*' \
-    -not -path '*/deps/SHA1/*' \
-    -not -path '*/deps/bech32/*' \
-    -not -path '*/deps/cs_libguarded/*' \
-    -not -path '*/deps/frozen/*' \
-    -not -path '*/deps/irrxml/*' \
-    -not -path '*/deps/lucre/*' \
-    -not -path '*/deps/packetcrypt/packetcrypt_rs/*' \
-    -not -path '*/deps/robin-hood/*' \
-    -not -path '*/deps/secp256k1/*' \
-    -not -path '*/deps/simpleini/*' \
-    -not -path '*/deps/smhasher/*' \
-    -not -path '*/deps/unordered_dense/*' \
-    -not -path '*/deps/vcpkg/*' \
-    -not -path '*/deps/vcpkg_installed/*' \
-    -not -path '*/tests/ottest/data/blockchain/ethereum/*' \
-    -not -path '*/tests/ottest/data/blockchain/cashtoken/*' \
-    -exec /usr/bin/fix_includes.py --blank_lines --nocomments --safe_headers --reorder --sort_only {} +
+CLANG_FORMAT_COMMAND="find ${SRC} \( -name '*.*pp' -o -name '*.json' \)"
+
+if [[ -f "${EXCLUDE_FILE}" ]]; then
+    while read p; do
+        CLANG_FORMAT_COMMAND="${CLANG_FORMAT_COMMAND} -not -path '${SRC}/${p}/*'"
+    done < "${EXCLUDE_FILE}"
+fi
+
+CLANG_FORMAT_COMMAND="${CLANG_FORMAT_COMMAND} -exec clang-format -i {} +"
+
+CMAKE_FORMAT_COMMAND="find ${SRC} -name CMakeLists.txt"
+
+if [[ -f "${EXCLUDE_FILE}" ]]; then
+    while read p; do
+        CMAKE_FORMAT_COMMAND="${CMAKE_FORMAT_COMMAND} -not -path '${SRC}/${p}/*'"
+    done < "${EXCLUDE_FILE}"
+fi
+
+CMAKE_FORMAT_COMMAND="${CMAKE_FORMAT_COMMAND} -exec cmake-format -i {} +"
+
+FIX_INCLUDES_COMMAND="find ${SRC} -name '*.*pp'"
+
+if [[ -f "${EXCLUDE_FILE}" ]]; then
+    while read p; do
+        FIX_INCLUDES_COMMAND="${FIX_INCLUDES_COMMAND} -not -path '${SRC}/${p}/*'"
+    done < "${EXCLUDE_FILE}"
+fi
+
+FIX_INCLUDES_COMMAND="${FIX_INCLUDES_COMMAND} -exec /usr/bin/fix_includes.py --blank_lines --nocomments --safe_headers --reorder --sort_only {} +"
+
+eval "${CLANG_FORMAT_COMMAND}"
+eval "${CMAKE_FORMAT_COMMAND}"
+eval "${FIX_INCLUDES_COMMAND}"
 
 cd "${SRC}"
 output=$(/usr/bin/git --no-pager diff)
