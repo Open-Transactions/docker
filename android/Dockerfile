@@ -1,9 +1,9 @@
 #single point for ARG definitions
 ARG ANDROID_TOOLS=8092744
-ARG ANDROID_LEVEL=31
-ARG ANDROID_LEVEL_TOOLCHAIN=31
-ARG ANDROID_BUILD_TOOLS=31.0.0
-ARG NDK=25.1.8937393
+ARG ANDROID_LEVEL=33
+ARG ANDROID_LEVEL_TOOLCHAIN=33
+ARG ANDROID_BUILD_TOOLS=33.0.0
+ARG NDK=25.2.9519653
 ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
@@ -50,7 +50,7 @@ RUN mkdir -p /opt/android && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS openssl_download
-ARG OPENSSL_VER=3.0.5
+ARG OPENSSL_VER=3.0.8
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget "https://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz" \
@@ -69,7 +69,7 @@ RUN mkdir -p /tmp/build \
     && rm -rf /tmp/build
 
 FROM tools AS cmake-download
-ARG CMAKE_VERSION="3.24.2"
+ARG CMAKE_VERSION="3.26.3"
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
@@ -95,22 +95,21 @@ COPY --from=cmake /usr/local /usr/local
 COPY --from=openssl_host /usr/local /usr/local
 
 FROM tools AS boost_download
-ARG BOOST=4067aed71278e292d1b78d8a13431f01f80012f1
+ARG BOOST=fd3df40e18d32112b0746814e92823ca5f1ca446
 RUN mkdir -p /usr/src && cd /usr/src \
-    && wget "https://github.com/moritz-wundke/Boost-for-Android/archive/${BOOST}.zip" \
+    && wget "https://github.com/Open-Transactions/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
     && rm "${BOOST}.zip" \
     && mv "Boost-for-Android-${BOOST}" boost \
     && cd /usr/src/boost \
-    && wget https://boostorg.jfrog.io/artifactory/main/release/1.80.0/source/boost_1_80_0.tar.bz2
+    && wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.bz2
 
 FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL
-COPY ./boost.patch /usr/src/boost/patches/boost-1_80_0/suffix.patch
+COPY ./boost.patch /usr/src/boost/patches/boost-1_82_0/suffix.patch
 RUN cd /usr/src/boost \
-    && sed -i "s/link=static/link=shared/" build-android.sh \
-    && ./build-android.sh --boost=1.80.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
+    && ./build-android.sh --boost=1.82.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
     && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
     && mv /usr/src/boost/build/out/armeabi-v7a /usr/android/arm \
@@ -669,8 +668,8 @@ RUN mkdir -p /tmp/build \
     && rm -rf /usr/src/tbb
 
 FROM tools AS qt_download
-ARG QT_BRANCH=6.3
-ARG QT_VERSION=6.3.2
+ARG QT_BRANCH=6.5
+ARG QT_VERSION=6.5.0
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
