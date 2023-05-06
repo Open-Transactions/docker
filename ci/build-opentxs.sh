@@ -36,7 +36,7 @@ rm -rf "${WORK}/"*
 /usr/bin/cmake \
     -S "${SRC}" \
     -B "${WORK}" \
-    --preset "${PRESET}"\
+    --preset "${PRESET}" \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_C_COMPILER="${CMAKE_C_COMPILER}" \
     -DCMAKE_CXX_COMPILER="${CMAKE_CXX_COMPILER}"
