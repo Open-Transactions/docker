@@ -54,6 +54,15 @@ RUN mkdir -p /usr/src \
     && rm /usr/src/boost.tar.bz2 \
     && mv "/usr/src/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
+FROM fedora-download AS cmake-download
+ARG CMAKE_VERSION="3.26.3"
+RUN mkdir -p /usr/src \
+    && cd /usr/src \
+    && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
+    && tar -xf cmake.tar.gz \
+    && rm cmake.tar.gz \
+    && mv "cmake-${CMAKE_VERSION}" cmake
+
 FROM fedora-build AS fedora-gtest
 COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
 RUN mkdir -p /tmp/gtest
@@ -77,11 +86,20 @@ RUN cd /usr/src/boost \
     && ./b2 \
     && ./b2 install
 
+FROM fedora-build AS fedora-cmake
+COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
+RUN mkdir -p /tmp/build \
+    && cd /tmp/build \
+    && cmake -GNinja /usr/src/cmake \
+    && cmake --build . \
+    && cmake --install .
+
 FROM fedora-build AS opentxs-fedora-ci
 RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-gtest /usr/local /usr
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr
+COPY --from=fedora-cmake /usr/local /usr
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./check-formatting.sh /usr/bin
