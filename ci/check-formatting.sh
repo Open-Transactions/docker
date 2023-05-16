@@ -20,7 +20,7 @@ fi
 
 CLANG_FORMAT_COMMAND="${CLANG_FORMAT_COMMAND} -exec clang-format -i {} +"
 
-CMAKE_FORMAT_COMMAND="find ${SRC} -name CMakeLists.txt"
+CMAKE_FORMAT_COMMAND="find ${SRC} \( -name 'CMakeLists.txt' -o -name '*.cmake' \)"
 
 if [[ -f "${EXCLUDE_FILE}" ]]; then
     while read p; do
