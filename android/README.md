@@ -8,13 +8,13 @@ This image creates an Android NDK development environment and compiles all opent
   * Platform (android-33)
   * Android NDK (25.2.9519653)
 * Boost (1.82)
-* Googletest (1.10.0)
+* Googletest (1.14.0)
 * LMDB (8d0cbbc)
-* OneTBB (66c6d8e)
-* OpenSSL (3.0.8)
+* OneTBB (2021.10.0)
+* OpenSSL (3.1.2)
 * Libsodium (1.0.18)
-* Protocol Buffers (3.19.4)
-* Qt (6.5.0)
+* Protocol Buffers (23.4)
+* Qt (6.5.2)
 * ZeroMQ (4.3.4)
 
 ## Usage

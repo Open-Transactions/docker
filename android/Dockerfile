@@ -8,11 +8,14 @@ ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
 
-FROM fedora:36 AS run
-RUN dnf install -y git ninja-build pcre2-devel && rm -rf /var/cache/dnf
+FROM fedora:38 AS run
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
+    git \
+    ninja-build \
+    pcre2-devel
 
 FROM run AS tools
-RUN dnf install -y \
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
     automake \
     bzip2 \
     diffutils \
@@ -25,11 +28,11 @@ RUN dnf install -y \
     patch \
     perl-core \
     python \
+    rsync \
     unzip \
     wget \
     which \
-    xz \
-    && rm -rf /var/cache/dnf
+    xz
 
 FROM tools as android
 ARG ANDROID_TOOLS
@@ -50,7 +53,7 @@ RUN mkdir -p /opt/android && \
     find /opt/android-sdk-linux/ndk -name libz.a -delete
 
 FROM tools AS openssl_download
-ARG OPENSSL_VER=3.0.8
+ARG OPENSSL_VER=3.1.2
 RUN mkdir -p /usr/src \
     && cd /usr/src \
     && wget "https://www.openssl.org/source/openssl-${OPENSSL_VER}.tar.gz" \
@@ -61,12 +64,10 @@ RUN mkdir -p /usr/src \
 FROM tools AS openssl_host
 ARG JOBS
 COPY --from=openssl_download /usr/src/openssl /usr/src/openssl
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/src/openssl/Configure --prefix=/usr/local \
     && make -j${JOBS} build_sw \
-    && make install_sw \
-    && rm -rf /tmp/build
+    && make install_sw
 
 FROM tools AS cmake-download
 ARG CMAKE_VERSION="3.26.3"
@@ -78,7 +79,7 @@ RUN mkdir -p /usr/src \
     && mv "cmake-${CMAKE_VERSION}" cmake
 
 FROM tools AS cmake
-RUN dnf install -y cmake && rm -rf /var/cache/dnf
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y cmake
 COPY --from=openssl_host /usr/local /usr/local
 COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
 RUN mkdir -p /tmp/build \
@@ -108,14 +109,14 @@ FROM build_base AS boost
 COPY --from=boost_download /usr/src/boost /usr/src/boost
 ARG ANDROID_LEVEL
 COPY ./boost.patch /usr/src/boost/patches/boost-1_82_0/suffix.patch
-RUN cd /usr/src/boost \
+RUN --mount=type=tmpfs,target=/tmp/build rsync -a /usr/src/boost/ /tmp/build/ \
+    && cd /tmp/build \
     && ./build-android.sh --boost=1.82.0 --arch=armeabi-v7a,arm64-v8a,x86,x86_64 --target-version="${ANDROID_LEVEL}" --layout=system /opt/ndk \
     && mkdir -p /usr/android \
-    && mv /usr/src/boost/build/out/arm64-v8a /usr/android/arm64 \
-    && mv /usr/src/boost/build/out/armeabi-v7a /usr/android/arm \
-    && mv /usr/src/boost/build/out/x86_64 /usr/android/x64 \
-    && mv /usr/src/boost/build/out/x86 /usr/android/x86 \
-    && rm -rf /usr/src/boost
+    && mv /tmp/build/build/out/arm64-v8a /usr/android/arm64 \
+    && mv /tmp/build/build/out/armeabi-v7a /usr/android/arm \
+    && mv /tmp/build/build/out/x86_64 /usr/android/x64 \
+    && mv /tmp/build/build/out/x86 /usr/android/x86
 
 FROM tools AS sodium_download
 ARG SODIUM=940ef42797baa0278df6b7fd9e67c7590f87744b
@@ -127,7 +128,7 @@ COPY --from=sodium_download /usr/src/sodium /usr/src/sodium
 ARG ANDROID_LEVEL
 ARG ANDROID_LEVEL_TOOLCHAIN
 ARG JOBS
-RUN mkdir -p /tmp/build && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
     && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-as" \
     && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang" \
@@ -144,8 +145,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-soname-versions \
         --enable-shared \
         --disable-static \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
         && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-as" \
         && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_LEVEL_TOOLCHAIN}-clang" \
@@ -162,8 +163,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-soname-versions \
         --enable-shared \
         --disable-static \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
         && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-as" \
         && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang" \
@@ -180,8 +181,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-soname-versions \
         --enable-shared \
         --disable-static \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && mkdir -p /tmp/build && cd /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
         && export AR="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar" \
         && export AS="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-as" \
         && export CC="/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang" \
@@ -198,8 +199,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build \
         --disable-soname-versions \
         --enable-shared \
         --disable-static \
-    && make -j$JOBS install && rm -rf /tmp/build \
-    && rm -rf /usr/src/sodium
+    && make -j$JOBS install
 
 FROM tools AS lmdb_download
 ARG LMDB=8d0cbbc936091eb85972501a9b31a8f86d4c51a7
@@ -210,51 +210,52 @@ FROM build_base AS lmdb
 COPY --from=lmdb_download /usr/src/lmdb /usr/src/lmdb
 ARG ANDROID_LEVEL_TOOLCHAIN
 ARG JOBS
-RUN cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build \
+    rsync -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/arm64~" /tmp/build/Makefile \
     && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
-    && make -j$JOBS install \
-    && rm -rf /tmp/build \
-    && cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build \
+    rsync -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/arm~" /tmp/build/Makefile \
     && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
-    && make -j$JOBS install \
-    && rm -rf /tmp/build \
-    && cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build \
+    rsync -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/x64~" /tmp/build/Makefile \
     && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
-    && make -j$JOBS install \
-    && rm -rf /tmp/build \
-    && cp -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
+    && make -j$JOBS install
+RUN --mount=type=tmpfs,target=/tmp/build \
+    rsync -a /usr/src/lmdb/libraries/liblmdb/ /tmp/build \
     && sed -i "s~gcc~/opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android${ANDROID_LEVEL_TOOLCHAIN}-clang~" /tmp/build/Makefile \
     && sed -i "s~= ar~= /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar~" /tmp/build/Makefile \
     && sed -i "s~/usr/local~/usr/android/x86~" /tmp/build/Makefile \
     && sed -i "s/liblmdb.a liblmdb\$(SOEXT)/liblmdb\$(SOEXT)/" /tmp/build/Makefile \
     && cd /tmp/build \
-    && make -j$JOBS install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/lmdb
+    && make -j$JOBS install
 
 FROM tools AS protobuf_download
-ARG PROTOBUF=22d0e265de7d2b3d2e9a00d071313502e7d4cccf
-RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/protocolbuffers/protobuf/archive/${PROTOBUF}.zip" \
-    && unzip "${PROTOBUF}.zip" && rm "${PROTOBUF}.zip" && mv "protobuf-${PROTOBUF}" protobuf
+ARG PROTOBUF=2c5fa078d8e86e5f4bd34e6f4c9ea9e8d7d4d44a
+RUN mkdir -p /usr/src \
+    && cd /usr/src \
+    && git clone https://github.com/protocolbuffers/protobuf /usr/src/protobuf \
+    && git -C /usr/src/protobuf reset --hard "${PROTOBUF}" \
+    && git -C /usr/src/protobuf submodule update --init --recursive
 
 FROM build_base AS protobuf
 COPY --from=protobuf_download /usr/src/protobuf /usr/src/protobuf
 ARG ANDROID_LEVEL
 ARG CMAKE_BUILD_TYPE
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -264,11 +265,9 @@ RUN mkdir -p /tmp/build \
         -Dprotobuf_BUILD_CONFORMANCE=OFF \
         -Dprotobuf_BUILD_PROTOC_BINARIES=ON \
         -Dprotobuf_BUILD_SHARED_LIBS=ON \
-        /usr/src/protobuf/cmake \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+        /usr/src/protobuf \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -284,11 +283,9 @@ RUN mkdir -p /tmp/build \
         -Dprotobuf_WITH_ZLIB=OFF \
         -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/protobuf/cmake \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+        /usr/src/protobuf \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -304,11 +301,9 @@ RUN mkdir -p /tmp/build \
         -Dprotobuf_WITH_ZLIB=OFF \
         -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/protobuf/cmake \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+        /usr/src/protobuf \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -324,11 +319,9 @@ RUN mkdir -p /tmp/build \
         -Dprotobuf_WITH_ZLIB=OFF \
         -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/protobuf/cmake \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+        /usr/src/protobuf \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -344,42 +337,34 @@ RUN mkdir -p /tmp/build \
         -Dprotobuf_WITH_ZLIB=OFF \
         -Dprotobuf_BUILD_SHARED_LIBS=ON \
         -DCMAKE_CXX_FLAGS="-Wl,-llog" \
-        /usr/src/protobuf/cmake \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/protobuf
+        /usr/src/protobuf \
+    && ninja install
 
 FROM build_base AS openssl
 COPY --from=openssl_download /usr/src/openssl /usr/src/openssl
 ARG JOBS
 ARG ANDROID_LEVEL
 ENV ANDROID_NDK_ROOT=/opt/ndk
-RUN export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
-    && mkdir -p /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
     && cd /tmp/build \
     && /usr/src/openssl/Configure --prefix=/usr/android/arm64 android-arm64 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
     && make -j${JOBS} build_sw \
-    && make install_sw \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
+    && make install_sw
+RUN --mount=type=tmpfs,target=/tmp/build export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
     && cd /tmp/build \
     && /usr/src/openssl/Configure --prefix=/usr/android/arm android-arm "-D__ANDROID_API__=${ANDROID_LEVEL}" \
     && make -j${JOBS} build_sw \
-    && make install_sw \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
+    && make install_sw
+RUN --mount=type=tmpfs,target=/tmp/build export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
     && cd /tmp/build \
     && /usr/src/openssl/Configure --prefix=/usr/android/x64 android-x86_64 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
     && make -j${JOBS} build_sw \
-    && make install_sw \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
+    && make install_sw
+RUN --mount=type=tmpfs,target=/tmp/build export export PATH="${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH" \
     && cd /tmp/build \
     && /usr/src/openssl/Configure --prefix=/usr/android/x86 android-x86 "-D__ANDROID_API__=${ANDROID_LEVEL}" \
     && make -j${JOBS} build_sw \
-    && make install_sw \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/openssl
+    && make install_sw
 
 FROM tools AS zeromq_download
 ARG ZMQ=4097855ddaaa65ed7b5e8cb86d143842a594eebd
@@ -391,8 +376,7 @@ COPY --from=zeromq_download /usr/src/zeromq /usr/src/zeromq
 COPY --from=sodium /usr/android /usr/android
 ARG ANDROID_LEVEL
 ARG CMAKE_BUILD_TYPE
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -421,10 +405,8 @@ RUN mkdir -p /tmp/build \
         -DBUILD_TESTS=OFF \
         -DENABLE_CPACK=OFF \
         /usr/src/zeromq \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -453,10 +435,8 @@ RUN mkdir -p /tmp/build \
         -DBUILD_TESTS=OFF \
         -DENABLE_CPACK=OFF \
         /usr/src/zeromq \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -485,10 +465,8 @@ RUN mkdir -p /tmp/build \
         -DENABLE_CPACK=OFF \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/zeromq \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -517,12 +495,10 @@ RUN mkdir -p /tmp/build \
         -DENABLE_CPACK=OFF \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/zeromq \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/zeromq
+    && ninja install
 
 FROM tools AS gtest_download
-ARG GTEST=e2239ee6043f73722e7aa812a459f54a28552929
+ARG GTEST=f8d7d77c06936315286eb55f8de22cd23c188571
 RUN mkdir -p /usr/src && cd /usr/src && git clone https://github.com/google/googletest.git \
     && cd googletest && git checkout "${GTEST}" && git submodule update --init --recursive
 
@@ -530,8 +506,7 @@ FROM build_base as gtest
 COPY --from=gtest_download /usr/src/googletest /usr/src/googletest
 ARG ANDROID_LEVEL
 ARG CMAKE_BUILD_TYPE
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -543,10 +518,8 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -558,10 +531,8 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -573,10 +544,8 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -588,12 +557,10 @@ RUN mkdir -p /tmp/build \
         -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
         -DBUILD_SHARED_LIBS=ON \
         /usr/src/googletest \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/googletest
+    && ninja install
 
 FROM tools AS tbb_download
-ARG TBB=66c6d8e3305363642d6284410881fda82f5c9c96
+ARG TBB=be2fb93722eb973a495c1d5b3661d8768d58d51b
 RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/oneapi-src/oneTBB/archive/${TBB}.zip" \
     && unzip "${TBB}.zip" && rm "${TBB}.zip" && mv "oneTBB-${TBB}" tbb
 
@@ -601,8 +568,7 @@ FROM build_base as tbb
 COPY --from=tbb_download /usr/src/tbb /usr/src/tbb
 ARG ANDROID_LEVEL
 ARG CMAKE_BUILD_TYPE
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -615,10 +581,8 @@ RUN mkdir -p /tmp/build \
         -DBUILD_SHARED_LIBS=ON \
         -DTBB_TEST=OFF \
         /usr/src/tbb \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -631,10 +595,8 @@ RUN mkdir -p /tmp/build \
         -DBUILD_SHARED_LIBS=ON \
         -DTBB_TEST=OFF \
         /usr/src/tbb \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -647,10 +609,8 @@ RUN mkdir -p /tmp/build \
         -DBUILD_SHARED_LIBS=ON \
         -DTBB_TEST=OFF \
         /usr/src/tbb \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && mkdir -p /tmp/build \
-    && cd /tmp/build \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && /usr/local/bin/cmake \
         -GNinja \
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
@@ -663,13 +623,11 @@ RUN mkdir -p /tmp/build \
         -DBUILD_SHARED_LIBS=ON \
         -DTBB_TEST=OFF \
         /usr/src/tbb \
-    && ninja install \
-    && rm -rf /tmp/build \
-    && rm -rf /usr/src/tbb
+    && ninja install
 
 FROM tools AS qt_download
 ARG QT_BRANCH=6.5
-ARG QT_VERSION=6.5.0
+ARG QT_VERSION=6.5.2
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
@@ -677,7 +635,8 @@ RUN mkdir -p /usr/src && cd /usr/src \
     && mv qt-everywhere-src-${QT_VERSION} qt
 
 FROM build_base as host_qt
-RUN dnf install -y \
+RUN --mount=type=tmpfs,target=/var/cache/dnf \
+    dnf install -y \
     SDL2-devel \
     assimp-devel \
     bison \
@@ -731,8 +690,7 @@ RUN dnf install -y \
     sqlite-devel \
     vulkan-devel \
     wayland-devel \
-    zlib-devel \
-    && rm -rf /var/cache/dnf
+    zlib-devel
 ARG JAVA_HOME_ARG
 ENV JAVA_HOME=$JAVA_HOME_ARG
 COPY --from=qt_download /usr/src/qt /usr/src/qt
@@ -743,7 +701,7 @@ RUN cd /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/ && \
     ln -s llvm-ranlib x86_64-linux-android-ranlib && \
     ln -s llvm-ranlib arm-linux-androideabi-ranlib && \
     ln -s llvm-ranlib aarch64-linux-android-ranlib
-RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && /usr/src/qt/configure \
     --prefix=/usr/host_qt \
     -opensource \
     -confirm-license \
@@ -751,15 +709,14 @@ RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install \
-    && rm -rf /tmp/build
+    && ninja install
 
 FROM host_qt as qt
 ARG JAVA_HOME_ARG
 ENV JAVA_HOME=$JAVA_HOME_ARG
 ARG JOBS
 ARG ANDROID_LEVEL_TOOLCHAIN
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/arm64 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -775,9 +732,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/arm \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -793,9 +749,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/x64 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -811,9 +766,8 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install \
-    && rm -rf /tmp/build
-RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/x86 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -829,8 +783,7 @@ RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && 
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install \
-    && rm -rf /tmp/build
+    && ninja install
 
 FROM run AS final
 ARG NDK
