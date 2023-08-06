@@ -37,7 +37,7 @@ RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
     which \
     zeromq-devel
 RUN pip install cmakelang
-RUN git config --global --add safe.directory /home/src
+RUN git config --global --add safe.directory '*'
 
 FROM fedora-download AS iwyu-download
 ARG IWYU_COMMIT="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"

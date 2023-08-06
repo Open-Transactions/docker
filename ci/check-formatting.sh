@@ -5,6 +5,12 @@ set -e
 SRC="${1}"
 EXCLUDE_FILE="${SRC}/.format-exclude"
 
+if [[ -f "${EXCLUDE_FILE}" ]]; then
+    echo "Excluding list of files at ${EXCLUDE_FILE}"
+else
+    echo "${EXCLUDE_FILE} does not exist"
+fi
+
 if [ ! -d "${SRC}" ]; then
     echo "Source tree missing. Mount source directory at ${SRC}"
     exit 1
