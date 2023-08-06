@@ -2,7 +2,7 @@
 
 set -e
 
-SRC="/home/src"
+SRC="${1}"
 EXCLUDE_FILE="${SRC}/.format-exclude"
 
 if [ ! -d "${SRC}" ]; then

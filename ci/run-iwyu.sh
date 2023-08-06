@@ -2,9 +2,9 @@
 
 set -e
 
-SRC="/home/src"
+SRC="${1}"
+PRESET="${2}"
 WORK="/home/output"
-PRESET="${1}"
 
 if [ ! -d "${SRC}" ]; then
     echo "Source tree missing. Mount opentxs source directory at ${SRC}"

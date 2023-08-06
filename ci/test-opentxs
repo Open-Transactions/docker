@@ -1,8 +1,8 @@
 #!/bin/bash
 
+SRC="${1}"
 #e.g. "-j 10 --output-on-failure --repeat until-pass:5 --timeout 300 --schedule-random"
-CTEST_PARAMS="${1}"
-SRC="/home/src"
+CTEST_PARAMS="${2}"
 WORK="/home/output"
 
 if [ ! -d "${SRC}" ]; then
@@ -25,5 +25,4 @@ set -e
 cd "${WORK}"
 
 echo ${CTEST_PARAMS}
-#cmake --install .  #no need to install
 ctest ${CTEST_PARAMS}

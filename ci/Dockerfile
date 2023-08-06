@@ -1,10 +1,16 @@
 FROM fedora:35 AS fedora-base
 
 FROM fedora-base AS fedora-download
-RUN dnf install -y git bzip2 lzo p7zip wget xz && rm -rf /var/cache/dnf
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
+    git \
+    bzip2 \
+    lzo \
+    p7zip \
+    wget \
+    xz
 
 FROM fedora-base AS fedora-build
-RUN dnf install -y \
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
     clang \
     clang-analyzer \
     cmake \
@@ -22,23 +28,21 @@ RUN dnf install -y \
     protobuf-lite-devel \
     qt6-qtbase-devel \
     qt6-qtdeclarative-devel \
+    rsync \
     sqlite-devel \
     tbb-devel \
     which \
-    zeromq-devel \
-    && rm -rf /var/cache/dnf
+    zeromq-devel
 RUN pip install cmakelang
 RUN git config --global --add safe.directory /home/src
 
 FROM fedora-download AS gtest-download
 ARG GTEST_VERSION="release-1.11.0"
-RUN mkdir -p /tmp/gtest/
-RUN wget -O /tmp/gtest/gtest.tar.gz https://github.com/google/googletest/archive/refs/tags/${GTEST_VERSION}.tar.gz
-RUN cd /tmp/gtest && \
-    tar -xf "gtest.tar.gz" && \
-    rm -f "gtest.tar.gz" && \
-    mkdir -p /usr/src && \
-    mv googletest-release-* /usr/src/gtest
+RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
+    && wget -O /tmp/download/gtest.tar.gz https://github.com/google/googletest/archive/refs/tags/${GTEST_VERSION}.tar.gz \
+    && tar -xf "gtest.tar.gz" \
+    && mkdir -p /usr/src \
+    && mv googletest-release-* /usr/src/gtest
 
 FROM fedora-download AS iwyu-download
 ARG IWYU_COMMIT="fbd921d6640bf1b18fe5a8a895636215367eb6b9"
@@ -48,48 +52,46 @@ FROM fedora-download AS boost-download
 ARG BOOST_MAJOR="1"
 ARG BOOST_MINOR="82"
 ARG BOOST_PATCH="0"
-RUN mkdir -p /usr/src \
-    && wget -O /usr/src/boost.tar.bz2 "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}.tar.bz2" \
-    && tar -xf /usr/src/boost.tar.bz2 -C /usr/src \
-    && rm /usr/src/boost.tar.bz2 \
-    && mv "/usr/src/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
+RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
+    && wget -O /tmp/download/boost.tar.bz2 "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}.tar.bz2" \
+    && tar -xf /tmp/download/boost.tar.bz2 -C /tmp/download \
+    && mkdir -p /tmp/download \
+    && mv "/tmp/download/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
 FROM fedora-download AS cmake-download
 ARG CMAKE_VERSION="3.26.3"
-RUN mkdir -p /usr/src \
-    && cd /usr/src \
-    && wget -O /usr/src/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
+RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
+    && wget -O /tmp/download/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
     && tar -xf cmake.tar.gz \
-    && rm cmake.tar.gz \
-    && mv "cmake-${CMAKE_VERSION}" cmake
+    && mv "cmake-${CMAKE_VERSION}" /usr/src/cmake
 
 FROM fedora-build AS fedora-gtest
 COPY --from=gtest-download /usr/src/gtest /usr/src/gtest
-RUN mkdir -p /tmp/gtest
-RUN cd /tmp/gtest && \
-    cmake -DBUILD_SHARED_LIBS=ON /usr/src/gtest && \
-    make install
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
+    && cmake -DBUILD_SHARED_LIBS=ON /usr/src/gtest \
+    && make install
 
 FROM fedora-build AS fedora-iwyu
-RUN dnf install -y clang-devel llvm-devel && rm -rf /var/cache/dnf
+RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
+    clang-devel \
+    llvm-devel
 COPY --from=iwyu-download /usr/src/iwyu /usr/src/iwyu
-RUN mkdir -p /tmp/iwyu && cd /tmp/iwyu \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake -GNinja /usr/src/iwyu \
     && cmake --build . \
-    && cmake --install . \
-    && rm -rf /tmp/iwyu
+    && cmake --install .
 
 FROM fedora-build AS fedora-boost
 COPY --from=boost-download /usr/src/boost /usr/src/boost
-RUN cd /usr/src/boost \
+RUN --mount=type=tmpfs,target=/tmp/build rsync -a /usr/src/boost/ /tmp/build/ \
+    && cd /tmp/build \
     && ./bootstrap.sh --prefix=/usr/local --with-libraries=all \
     && ./b2 \
     && ./b2 install
 
 FROM fedora-build AS fedora-cmake
 COPY --from=cmake-download /usr/src/cmake /usr/src/cmake
-RUN mkdir -p /tmp/build \
-    && cd /tmp/build \
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake -GNinja /usr/src/cmake \
     && cmake --build . \
     && cmake --install .

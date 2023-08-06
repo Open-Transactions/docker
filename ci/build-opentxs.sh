@@ -1,8 +1,8 @@
 #!/bin/bash
 
-COMPILER="${1}"
-PRESET="${2}"
-SRC="/home/src"
+SRC="${1}"
+COMPILER="${2}"
+PRESET="${3}"
 WORK="/home/output"
 
 if [ ! -d "${SRC}" ]; then
