@@ -12,7 +12,7 @@ RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
 
 FROM download AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="1.166.0"
+ARG OPENTXS_COMMIT="1.167.0"
 RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM download AS iwyu-download
