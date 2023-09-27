@@ -6,15 +6,14 @@ This image creates an Android NDK development environment and compiles all opent
 
 * Android SDK
   * Platform (android-33)
-  * Android NDK (25.2.9519653)
+  * Android NDK (26.0.10792818)
 * Boost (1.82)
 * Googletest (1.14.0)
 * LMDB (8d0cbbc)
-* OneTBB (2021.10.0)
 * OpenSSL (3.1.2)
 * Libsodium (1.0.18)
 * Protocol Buffers (23.4)
-* Qt (6.5.2)
+* Qt (6.6.0-rc)
 * ZeroMQ (4.3.4)
 
 ## Usage
@@ -43,9 +42,9 @@ docker image build -t opentransactions/android --build-arg JOBS=8 .
 * OPENSSL_VER
 * PROTOBUF
 * QT_BRANCH
+* QT_RELEASE
 * QT_VERSION
 * SODIUM
-* TBB
 * ZMQ
 
 ### Compiling opentxs

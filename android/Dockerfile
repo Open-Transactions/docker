@@ -3,7 +3,7 @@ ARG ANDROID_TOOLS=8092744
 ARG ANDROID_LEVEL=33
 ARG ANDROID_LEVEL_TOOLCHAIN=33
 ARG ANDROID_BUILD_TOOLS=33.0.0
-ARG NDK=25.2.9519653
+ARG NDK=26.0.10792818
 ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
@@ -96,7 +96,7 @@ COPY --from=cmake /usr/local /usr/local
 COPY --from=openssl_host /usr/local /usr/local
 
 FROM tools AS boost_download
-ARG BOOST=fd3df40e18d32112b0746814e92823ca5f1ca446
+ARG BOOST=294a0e1cc152f3ebe325a2b1a8319ac75789e524
 RUN mkdir -p /usr/src && cd /usr/src \
     && wget "https://github.com/Open-Transactions/Boost-for-Android/archive/${BOOST}.zip" \
     && unzip "${BOOST}.zip" \
@@ -559,77 +559,12 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
         /usr/src/googletest \
     && ninja install
 
-FROM tools AS tbb_download
-ARG TBB=be2fb93722eb973a495c1d5b3661d8768d58d51b
-RUN mkdir -p /usr/src && cd /usr/src && wget "https://github.com/oneapi-src/oneTBB/archive/${TBB}.zip" \
-    && unzip "${TBB}.zip" && rm "${TBB}.zip" && mv "oneTBB-${TBB}" tbb
-
-FROM build_base as tbb
-COPY --from=tbb_download /usr/src/tbb /usr/src/tbb
-ARG ANDROID_LEVEL
-ARG CMAKE_BUILD_TYPE
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=arm64-v8a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm64 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm64 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DTBB_TEST=OFF \
-        /usr/src/tbb \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=armeabi-v7a \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/arm \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/arm \
-        -DBUILD_SHARED_LIBS=ON \
-        -DTBB_TEST=OFF \
-        /usr/src/tbb \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86_64 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x64 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/x64 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DTBB_TEST=OFF \
-        /usr/src/tbb \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
-    && /usr/local/bin/cmake \
-        -GNinja \
-        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" \
-        -DANDROID_ABI=x86 \
-        -DANDROID_PLATFORM="android-${ANDROID_LEVEL}" \
-        -DANDROID_STL="c++_shared" \
-        -DCMAKE_TOOLCHAIN_FILE="/opt/ndk/build/cmake/android.toolchain.cmake" \
-        -DCMAKE_INSTALL_PREFIX=/usr/android/x86 \
-        -DCMAKE_FIND_ROOT_PATH=/usr/android/x86 \
-        -DBUILD_SHARED_LIBS=ON \
-        -DTBB_TEST=OFF \
-        /usr/src/tbb \
-    && ninja install
-
 FROM tools AS qt_download
-ARG QT_BRANCH=6.5
-ARG QT_VERSION=6.5.2
+ARG QT_RELEASE=development_releases
+ARG QT_BRANCH=6.6
+ARG QT_VERSION=6.6.0-rc
 RUN mkdir -p /usr/src && cd /usr/src \
-    && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+    && wget "https://download.qt.io/${QT_RELEASE}/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt
@@ -701,7 +636,7 @@ RUN cd /opt/ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/ && \
     ln -s llvm-ranlib x86_64-linux-android-ranlib && \
     ln -s llvm-ranlib arm-linux-androideabi-ranlib && \
     ln -s llvm-ranlib aarch64-linux-android-ranlib
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && /usr/src/qt/configure \
+RUN mkdir -p /tmp/build && cd /tmp/build && /usr/src/qt/configure \
     --prefix=/usr/host_qt \
     -opensource \
     -confirm-license \
@@ -709,14 +644,15 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && /usr/src/qt/configure 
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install
+    && ninja install \
+    && rm -rf /tmp/build
 
 FROM host_qt as qt
 ARG JAVA_HOME_ARG
 ENV JAVA_HOME=$JAVA_HOME_ARG
 ARG JOBS
 ARG ANDROID_LEVEL_TOOLCHAIN
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/arm64 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -732,8 +668,9 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAV
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/arm \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -749,8 +686,9 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAV
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/x64 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -766,8 +704,9 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAV
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install
-RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
+    && ninja install \
+    && rm -rf /tmp/build
+RUN mkdir -p /tmp/build && cd /tmp/build && export PATH=$PATH:$JAVA_HOME/bin && /usr/src/qt/configure \
     --prefix=/usr/qt-for-android/x86 \
     --disable-rpath \
     -qt-host-path /usr/host_qt \
@@ -783,7 +722,8 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build && export PATH=$PATH:$JAV
     -nomake examples \
     -no-warnings-are-errors \
     -c++std c++20 \
-    && ninja install
+    && ninja install \
+    && rm -rf /tmp/build
 
 FROM run AS final
 ARG NDK
@@ -799,7 +739,6 @@ COPY --from=protobuf /usr/local/protobuf /usr
 COPY --from=openssl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
-COPY --from=tbb /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
 COPY ./build /usr/bin
 RUN /usr/bin/git config --system --add safe.directory '*'
