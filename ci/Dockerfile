@@ -1,4 +1,4 @@
-FROM fedora:38 AS fedora-base
+FROM fedora:39 AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -40,7 +40,7 @@ RUN pip install cmakelang
 RUN git config --global --add safe.directory '*'
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="35fed15e53d92c8c540f0c00ac10077043126c4d"
+ARG IWYU_COMMIT="46f908ff2ad1b6da226c8190624c03d76b7eee9a"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM fedora-download AS boost-download

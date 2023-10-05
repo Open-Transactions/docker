@@ -27,7 +27,7 @@ docker run \
     --read-only \
     --mount readonly,type=bind,src=/path/to/opentxs,dst=/home/src \
     --mount type=bind,src=/path/to/build/directory,dst=/home/output \
-    -it opentransactions/ci:38_4 \
+    -it opentransactions/ci:39_0 \
     /home/src \
     gcc \
     full
@@ -48,7 +48,7 @@ docker run \
     --read-only \
     --mount type=bind,src=/path/to/opentxs,dst=/home/src \
     --entrypoint /usr/bin/check-formatting.sh \
-    -it opentransactions/ci:38_4 \
+    -it opentransactions/ci:39_0 \
     /home/src
 ```
 
@@ -70,7 +70,7 @@ docker run \
     --mount type=bind,src=/path/to/opentxs,dst=/home/src \
     --mount type=bind,src=/path/to/build/directory,dst=/home/output \
     --entrypoint /usr/bin/run-iwyu.sh \
-    -it opentransactions/ci:38_4 \
+    -it opentransactions/ci:39_0 \
     /home/src \
     iwyu
 ```
