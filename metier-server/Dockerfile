@@ -1,4 +1,4 @@
-FROM fedora:38 AS base
+FROM fedora:39 AS base
 
 FROM base AS git
 RUN dnf install -y git
@@ -8,7 +8,7 @@ ARG METIER_REPO="https://github.com/Open-Transactions/metier-server"
 ARG METIER_COMMIT="23.2"
 RUN mkdir -p /usr/src && git clone --recursive "${METIER_REPO}" /usr/src/metier-server && cd /usr/src/metier-server && git reset --hard "${METIER_COMMIT}"
 
-FROM opentransactions/fedora-devel:1.178.3 AS compile
+FROM opentransactions/fedora-devel:1.179.0 AS compile
 RUN dnf install -y \
     boost-devel \
     boost-devel \
@@ -39,7 +39,7 @@ RUN mkdir -p /tmp/metier-server && cd /tmp/metier-server \
     && cmake --install . \
     && rm -rf /tmp/metier-server*
 
-FROM opentransactions/fedora:1.178.3 AS run
+FROM opentransactions/fedora:1.179.0 AS run
 COPY --from=compile /usr/local/bin/metier-server /usr/bin/metier-server
 ENTRYPOINT [ "/usr/bin/metier-server", "--data_dir=/metier" ]
 CMD []
