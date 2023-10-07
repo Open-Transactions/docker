@@ -1,4 +1,4 @@
-FROM fedora:38 AS base
+FROM fedora:39 AS base
 
 FROM base AS download
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -12,11 +12,11 @@ RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
 
 FROM download AS opentxs-download
 ARG OPENTXS_REPO="https://github.com/open-transactions/opentxs"
-ARG OPENTXS_COMMIT="1.178.3"
+ARG OPENTXS_COMMIT="1.179.0"
 RUN mkdir -p /usr/src && git clone --recursive "${OPENTXS_REPO}" /usr/src/opentxs && cd /usr/src/opentxs && git reset --hard "${OPENTXS_COMMIT}"
 
 FROM download AS iwyu-download
-ARG IWYU_COMMIT="35fed15e53d92c8c540f0c00ac10077043126c4d"
+ARG IWYU_COMMIT="46f908ff2ad1b6da226c8190624c03d76b7eee9a"
 RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
 
 FROM download AS boost-download
@@ -54,9 +54,11 @@ RUN --mount=type=tmpfs,target=/tmp/build rsync -a /usr/src/boost/ /tmp/build/ \
     && cd /tmp/build \
     && ./bootstrap.sh --prefix=/usr/local --with-libraries=all \
     && ./b2 \
-    && ./b2 install
+    && ./b2 --prefix=/usr/local install
 
-FROM boost AS compile
+FROM build AS compile
+COPY --from=boost /usr/local /usr
+RUN ldconfig
 COPY --from=opentxs-download /usr/src/opentxs /usr/src/opentxs
 RUN --mount=type=tmpfs,target=/tmp/opentxs cmake \
         -S /usr/src/opentxs \
@@ -82,7 +84,7 @@ RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
     zeromq
 
 FROM run AS opentxs
-COPY --from=boost /usr/local/lib64 /usr/lib64
+COPY --from=boost /usr/local/lib /usr/lib
 COPY --from=compile /usr/local/lib64 /usr/lib64
 RUN ldconfig
 
@@ -93,11 +95,11 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake --build . \
     && cmake --install .
 
-FROM opentransactions/ci:37_9 AS ci
+FROM opentransactions/ci:39_0 AS ci
 
 FROM build AS opentxs-devel
-COPY --from=boost /usr/local /usr/local
-COPY --from=compile /usr/local /usr/local
+COPY --from=boost /usr/local /usr
+COPY --from=compile /usr/local /usr
 COPY --from=iwyu /usr/local /usr
 RUN ldconfig
 COPY --from=ci /usr/bin/run-iwyu.sh /usr/bin/run-iwyu.sh
