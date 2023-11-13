@@ -1,3 +1,5 @@
+ARG OTCOMMON_VERSION="1.0.2"
+
 FROM fedora:37 AS fedora-base
 
 FROM fedora-base AS fedora-download
@@ -60,6 +62,13 @@ RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && tar -xf cmake.tar.gz \
     && mv "cmake-${CMAKE_VERSION}" /usr/src/cmake
 
+FROM fedora-download AS otcommon-download
+ARG OTCOMMON_VERSION
+RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
+    && wget -O /tmp/download/otcommon.tar.gz "https://github.com/Open-Transactions/otcommon/archive/refs/tags/${OTCOMMON_VERSION}.tar.gz" \
+    && tar -xf otcommon.tar.gz \
+    && mv "otcommon-${OTCOMMON_VERSION}" /usr/src/otcommon
+
 FROM fedora-build AS fedora-iwyu
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
     clang-devel \
@@ -85,11 +94,24 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
     && cmake --build . \
     && cmake --install .
 
+FROM fedora-build AS fedora-otcommon
+ARG OTCOMMON_VERSION
+COPY --from=otcommon-download /usr/src/otcommon /usr/src/otcommon
+COPY --from=fedora-cmake /usr/local /usr
+RUN ldconfig
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
+    && cmake \
+        -GNinja \
+        -Dotcommon_GIT_VERSION=${OTCOMMON_VERSION} \
+        /usr/src/otcommon \
+    && cmake --install .
+
 FROM fedora-build AS opentxs-fedora-ci
 RUN ln -s /usr/bin/python3 /usr/bin/python
 COPY --from=fedora-iwyu /usr/local /usr
 COPY --from=fedora-boost /usr/local /usr
 COPY --from=fedora-cmake /usr/local /usr
+COPY --from=fedora-otcommon /usr/local /usr
 RUN ldconfig
 COPY ./build-opentxs.sh /usr/bin
 COPY ./check-formatting.sh /usr/bin

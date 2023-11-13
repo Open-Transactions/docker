@@ -3,7 +3,7 @@
 set -e
 
 SRC="${1}"
-EXCLUDE_FILE="${SRC}/.format-exclude"
+EXCLUDE_FILE="${SRC}/tools/format/exclude"
 
 if [[ -f "${EXCLUDE_FILE}" ]]; then
     echo "Excluding list of files at ${EXCLUDE_FILE}"
@@ -15,6 +15,17 @@ if [ ! -d "${SRC}" ]; then
     echo "Source tree missing. Mount source directory at ${SRC}"
     exit 1
 fi
+
+if [ -e "${SRC}/.clang-format" ]; then
+    mv "${SRC}/.clang-format" "${SRC}/.clang-format.backup"
+fi
+
+if [ -e "${SRC}/.cmake-format.py" ]; then
+    mv "${SRC}/.cmake-format.py" "${SRC}/.cmake-format.py.backup"
+fi
+
+cp /usr/share/otcommon/format/clang-format "${SRC}/.clang-format"
+cp /usr/share/otcommon/format/cmake-format.py "${SRC}/.cmake-format.py"
 
 CLANG_FORMAT_COMMAND="find ${SRC} \( -name '*.*pp' -o -name '*.json' \)"
 
@@ -49,6 +60,17 @@ FIX_INCLUDES_COMMAND="${FIX_INCLUDES_COMMAND} -exec /usr/bin/fix_includes.py --b
 eval "${CLANG_FORMAT_COMMAND}"
 eval "${CMAKE_FORMAT_COMMAND}"
 eval "${FIX_INCLUDES_COMMAND}"
+
+rm "${SRC}/.clang-format"
+rm "${SRC}/.cmake-format.py"
+
+if [ -e "${SRC}/.clang-format.backup" ]; then
+    mv "${SRC}/.clang-format.backup" "${SRC}/.clang-format"
+fi
+
+if [ -e "${SRC}/.cmake-format.py.backup" ]; then
+    mv "${SRC}/.cmake-format.py.backup" "${SRC}/.cmake-format.py"
+fi
 
 cd "${SRC}"
 output=$(/usr/bin/git --no-pager diff)
