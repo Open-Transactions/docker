@@ -11,9 +11,10 @@ This image creates an Android NDK development environment and compiles all opent
 * Googletest (1.14.0)
 * LMDB (8d0cbbc)
 * OpenSSL (3.1.2)
+* otcommon (1.0.2)
 * Libsodium (1.0.18)
 * Protocol Buffers (23.4)
-* Qt (6.6.0-rc)
+* Qt (6.6.0)
 * ZeroMQ (4.3.4)
 
 ## Usage

@@ -7,6 +7,7 @@ ARG NDK=26.0.10792818
 ARG JOBS=2
 ARG CMAKE_BUILD_TYPE=Release
 ARG JAVA_HOME_ARG=/usr/lib/jvm/java
+ARG OTCOMMON_VERSION="1.0.2"
 
 FROM fedora:38 AS run
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -559,12 +560,30 @@ RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
         /usr/src/googletest \
     && ninja install
 
+FROM tools AS otcommon_download
+ARG OTCOMMON_VERSION
+RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
+    && wget -O /tmp/download/otcommon.tar.gz "https://github.com/Open-Transactions/otcommon/archive/refs/tags/${OTCOMMON_VERSION}.tar.gz" \
+    && tar -xf otcommon.tar.gz \
+    && mv "otcommon-${OTCOMMON_VERSION}" /usr/src/otcommon
+
+FROM build_base AS otcommon
+ARG OTCOMMON_VERSION
+COPY --from=otcommon_download /usr/src/otcommon /usr/src/otcommon
+RUN --mount=type=tmpfs,target=/tmp/build cd /tmp/build \
+    && cmake \
+        -DCMAKE_INSTALL_PREFIX=/usr/otcommon \
+        -GNinja \
+        -Dotcommon_GIT_VERSION=${OTCOMMON_VERSION} \
+        /usr/src/otcommon \
+    && cmake --install .
+
 FROM tools AS qt_download
 ARG QT_RELEASE=development_releases
 ARG QT_BRANCH=6.6
-ARG QT_VERSION=6.6.0-rc
+ARG QT_VERSION=6.6.0
 RUN mkdir -p /usr/src && cd /usr/src \
-    && wget "https://download.qt.io/${QT_RELEASE}/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+    && wget "https://download.qt.io/official_releases/qt/${QT_BRANCH}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && tar -xf "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && rm "qt-everywhere-src-${QT_VERSION}.tar.xz" \
     && mv qt-everywhere-src-${QT_VERSION} qt
@@ -740,6 +759,7 @@ COPY --from=openssl /usr/android /usr/android
 COPY --from=zeromq /usr/android /usr/android
 COPY --from=gtest /usr/android /usr/android
 COPY --from=cmake /usr/local /usr/local
+COPY --from=otcommon /usr/otcommon /usr/otcommon
 COPY ./build /usr/bin
 RUN /usr/bin/git config --system --add safe.directory '*'
 ENTRYPOINT [ "/usr/bin/build" ]
