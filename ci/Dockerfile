@@ -1,6 +1,13 @@
-ARG OTCOMMON_VERSION="1.0.2"
+ARG BASE_FEDORA_VERSION="37"
+ARG BOOST_MAJOR="1"
+ARG BOOST_MINOR="82"
+ARG BOOST_PATCH="0"
+ARG CMAKE_VERSION="3.26.3"
+ARG IWYU_COMMIT_HASH="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"
+ARG OTCOMMON_COMMIT_HASH="a8cb2a10e7eff4fdece28feea681541b70728053"
+ARG OTCOMMON_VERSION="2.0.0-0-ga8cb2a1"
 
-FROM fedora:37 AS fedora-base
+FROM fedora:${BASE_FEDORA_VERSION} AS fedora-base
 
 FROM fedora-base AS fedora-download
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
@@ -42,13 +49,13 @@ RUN pip install cmakelang
 RUN git config --global --add safe.directory '*'
 
 FROM fedora-download AS iwyu-download
-ARG IWYU_COMMIT="7f0b6c304acf69c42bb7f6e03c63f836924cb7e0"
-RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT}"
+ARG IWYU_COMMIT_HASH
+RUN mkdir -p /usr/src && git clone --recursive "https://github.com/include-what-you-use/include-what-you-use" /usr/src/iwyu && cd /usr/src/iwyu && git reset --hard "${IWYU_COMMIT_HASH}"
 
 FROM fedora-download AS boost-download
-ARG BOOST_MAJOR="1"
-ARG BOOST_MINOR="82"
-ARG BOOST_PATCH="0"
+ARG BOOST_MAJOR
+ARG BOOST_MINOR
+ARG BOOST_PATCH
 RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && wget -O /tmp/download/boost.tar.bz2 "https://boostorg.jfrog.io/artifactory/main/release/${BOOST_MAJOR}.${BOOST_MINOR}.${BOOST_PATCH}/source/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}.tar.bz2" \
     && tar -xf /tmp/download/boost.tar.bz2 -C /tmp/download \
@@ -56,18 +63,18 @@ RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && mv "/tmp/download/boost_${BOOST_MAJOR}_${BOOST_MINOR}_${BOOST_PATCH}" /usr/src/boost
 
 FROM fedora-download AS cmake-download
-ARG CMAKE_VERSION="3.26.3"
+ARG CMAKE_VERSION
 RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
     && wget -O /tmp/download/cmake.tar.gz "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}.tar.gz" \
     && tar -xf cmake.tar.gz \
     && mv "cmake-${CMAKE_VERSION}" /usr/src/cmake
 
 FROM fedora-download AS otcommon-download
-ARG OTCOMMON_VERSION
+ARG OTCOMMON_COMMIT_HASH
 RUN --mount=type=tmpfs,target=/tmp/download/ cd /tmp/download \
-    && wget -O /tmp/download/otcommon.tar.gz "https://github.com/Open-Transactions/otcommon/archive/refs/tags/${OTCOMMON_VERSION}.tar.gz" \
+    && wget -O /tmp/download/otcommon.tar.gz "https://github.com/Open-Transactions/otcommon/archive/${OTCOMMON_COMMIT_HASH}.tar.gz" \
     && tar -xf otcommon.tar.gz \
-    && mv "otcommon-${OTCOMMON_VERSION}" /usr/src/otcommon
+    && mv "otcommon-${OTCOMMON_COMMIT_HASH}" /usr/src/otcommon
 
 FROM fedora-build AS fedora-iwyu
 RUN --mount=type=tmpfs,target=/var/cache/dnf dnf install -y \
