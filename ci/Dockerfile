@@ -123,9 +123,9 @@ COPY --from=fedora-boost /usr/local /usr
 COPY --from=fedora-cmake /usr/local /usr
 COPY --from=fedora-otcommon /usr/local /usr
 RUN ldconfig
-COPY ./build-opentxs.sh /usr/bin
-COPY ./check-formatting.sh /usr/bin
-COPY ./run-iwyu.sh /usr/bin
+COPY build-opentxs.sh /usr/bin
+COPY check-formatting.sh /usr/bin
+COPY run-iwyu.sh /usr/bin
 RUN chmod a+x /usr/bin/build-opentxs.sh
 RUN chmod a+x /usr/bin/check-formatting.sh
 RUN chmod a+x /usr/bin/run-iwyu.sh
